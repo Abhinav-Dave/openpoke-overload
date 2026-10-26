@@ -70,7 +70,7 @@ class ExecutionAgent:
         base_prompt = self.build_system_prompt()
 
         # Load history transcript
-        transcript = self._log_store.load_transcript(self.name)
+        transcript = self._log_store.load_transcript_tail(self.name)
 
         if transcript:
             # Apply conversation limit if needed

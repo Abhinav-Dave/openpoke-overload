@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import threading
 from html import escape, unescape
@@ -40,6 +41,11 @@ def _decode_payload(payload: str) -> str:
     """Decode payload from storage."""
     return unescape(payload).replace("\\n", "\n")
 
+
+EXEC_LOG_TAIL_ENTRIES = int(os.getenv("OPENPOKE_EXEC_LOG_TAIL_ENTRIES", "20"))
+EXEC_LOG_MAX_CHARS = int(os.getenv("OPENPOKE_EXEC_LOG_MAX_CHARS", "12000"))
+_FIRST_REQUEST_CHARS = 200
+_TRUNCATED = " [truncated]"
 
 _ATTR_PATTERN = re.compile(r"(\w+)\s*=\s*\"([^\"]*)\"")
 
@@ -147,16 +153,48 @@ class ExecutionAgentLogStore:
             if parsed is not None:
                 yield parsed
 
+    @staticmethod
+    def _format_entry(tag: str, timestamp: str, payload: str) -> str:
+        escaped = escape(payload, quote=False)
+        if timestamp:
+            return f"<{tag} timestamp=\"{timestamp}\">{escaped}</{tag}>"
+        return f"<{tag}>{escaped}</{tag}>"
+
     def load_transcript(self, agent_name: str) -> str:
         """Load the full transcript for inclusion in system prompt."""
-        parts: List[str] = []
-        for tag, timestamp, payload in self.iter_entries(agent_name):
-            escaped = escape(payload, quote=False)
-            if timestamp:
-                parts.append(f"<{tag} timestamp=\"{timestamp}\">{escaped}</{tag}>")
-            else:
-                parts.append(f"<{tag}>{escaped}</{tag}>")
-        return "\n".join(parts)
+        return "\n".join(self._format_entry(*e) for e in self.iter_entries(agent_name))
+
+    def load_transcript_tail(
+        self, agent_name: str, max_entries: int | None = None, max_chars: int | None = None
+    ) -> str:
+        """Newest whole entries only, within max_entries and max_chars (header included).
+
+        Identical to load_transcript when everything fits. Otherwise starts with one
+        header line noting how many older entries were omitted. The file is untouched.
+        """
+        max_entries = EXEC_LOG_TAIL_ENTRIES if max_entries is None else max_entries
+        max_chars = EXEC_LOG_MAX_CHARS if max_chars is None else max_chars
+        raw = list(self.iter_entries(agent_name))
+        formatted = [self._format_entry(*e) for e in raw]
+        if len(formatted) <= max_entries and len("\n".join(formatted)) <= max_chars:
+            return "\n".join(formatted)
+
+        first = next((p for t, _, p in raw if t == "agent_request"), "")
+        first = " ".join(first.split())[:_FIRST_REQUEST_CHARS]
+        suffix = f" First request was: {first}]" if first else "]"
+
+        def header(omitted: int) -> str:
+            return f"[Earlier history omitted: {omitted} entries.{suffix}"
+
+        kept = formatted[-max(max_entries, 1):]
+        while len(kept) > 1 and len(header(len(formatted) - len(kept))) + 1 + len("\n".join(kept)) > max_chars:
+            kept = kept[1:]
+        head = header(len(formatted) - len(kept))
+        body = "\n".join(kept)
+        room = max_chars - len(head) - 1
+        if len(body) > room:  # lone newest entry still too big
+            body = body[: max(room - len(_TRUNCATED), 0)] + _TRUNCATED
+        return f"{head}\n{body}"
 
     def load_recent(self, agent_name: str, limit: int = 10) -> list[tuple[str, str, str]]:
         """Load recent log entries."""
