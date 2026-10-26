@@ -217,7 +217,8 @@ def initiate_connect(payload: GmailConnectPayload, settings: Settings) -> JSONRe
     _clear_cached_profile(user_id)
     try:
         client = _get_composio_client(settings)
-        req = client.connected_accounts.initiate(user_id=user_id, auth_config_id=auth_config_id)
+        # Composio retired `initiate` for managed-OAuth auth configs; `link` returns the same redirect URL.
+        req = client.connected_accounts.link(user_id=user_id, auth_config_id=auth_config_id)
         data = {
             "ok": True,
             "redirect_url": getattr(req, "redirect_url", None) or getattr(req, "redirectUrl", None),
@@ -261,7 +262,8 @@ def fetch_status(payload: GmailStatusPayload) -> JSONResponse:
                 items = client.connected_accounts.list(
                     user_ids=[user_id], toolkit_slugs=["GMAIL"], statuses=["ACTIVE"]
                 )
-                data = getattr(items, "data", None)
+                # newer Composio SDKs return `.items`; older ones returned `.data`
+                data = getattr(items, "items", None) or getattr(items, "data", None)
                 if data is None and isinstance(items, dict):
                     data = items.get("data")
                 if data:
@@ -380,7 +382,8 @@ def disconnect_account(payload: GmailDisconnectPayload) -> JSONResponse:
     else:
         try:
             items = client.connected_accounts.list(user_ids=[user_id], toolkit_slugs=["GMAIL"])
-            data = getattr(items, "data", None)
+            # newer Composio SDKs return `.items`; older ones returned `.data`
+            data = getattr(items, "items", None) or getattr(items, "data", None)
             if data is None and isinstance(items, dict):
                 data = items.get("data")
         except Exception as exc:  # pragma: no cover - dependent on SDK
