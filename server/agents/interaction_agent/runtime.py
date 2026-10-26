@@ -1,6 +1,9 @@
 """Interaction Agent Runtime - handles LLM calls for user and agent turns."""
 
+import asyncio
 import json
+import os
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
@@ -11,6 +14,71 @@ from ...services.conversation import get_conversation_log, get_working_memory_lo
 from ...services.execution import limits
 from ...openrouter_client import request_chat_completion
 from ...logging_config import logger
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.getenv(name, default)))
+    except ValueError:
+        return default
+
+
+MAX_QUEUED_CHAT = _env_int("OPENPOKE_MAX_QUEUED_CHAT", 10)
+
+ITERATION_LIMIT_REPLY = "I got stuck going in circles on that and could not finish. Please try again."
+FAILURE_REPLY = "I ran into a problem and could not finish that. Please try again."
+
+# One interaction run at a time. Lazy per loop, like limits.py. Only user chat turns are
+# ever rejected (see reserve_chat_slot); agent/email/trigger turns always wait their turn.
+# ponytail: one global lock; per-conversation locks if there ever is more than one conversation.
+_lock: Optional[asyncio.Lock] = None
+_lock_loop: Optional[asyncio.AbstractEventLoop] = None
+_running = _waiting = 0
+
+
+def reset_chat_queue() -> None:
+    """Drop the lock and zero the counters (tests)."""
+    global _lock, _lock_loop, _running, _waiting
+    _lock = _lock_loop = None
+    _running = _waiting = 0
+
+
+def get_chat_load() -> Dict[str, int]:
+    return {"running": _running, "waiting": _waiting, "max_queued": MAX_QUEUED_CHAT}
+
+
+def reserve_chat_slot() -> bool:
+    """Admit one new user message into the waiting line; False when it is full.
+
+    The reservation is released when that run acquires the lock, so the caller must
+    follow up with execute(..., reserved=True).
+    """
+    global _waiting
+    if _waiting >= MAX_QUEUED_CHAT:
+        return False
+    _waiting += 1
+    return True
+
+
+@asynccontextmanager
+async def _run_slot(reserved: bool = False):
+    global _lock, _lock_loop, _running, _waiting
+    loop = asyncio.get_running_loop()
+    if _lock is None or _lock_loop is not loop:
+        _lock, _lock_loop = asyncio.Lock(), loop
+    lock = _lock
+    if not reserved:
+        _waiting += 1
+    try:
+        await lock.acquire()
+    finally:
+        _waiting -= 1
+    _running += 1
+    try:
+        yield
+    finally:
+        _running -= 1
+        lock.release()
 
 
 @dataclass
@@ -63,9 +131,14 @@ class InteractionAgentRuntime:
             )
 
     # Main entry point for processing user messages through the LLM interaction loop
-    async def execute(self, user_message: str) -> InteractionResult:
-        """Handle a user-authored message."""
+    async def execute(self, user_message: str, reserved: bool = False) -> InteractionResult:
+        """Handle a user-authored message. `reserved`: a waiting-line slot is already held."""
 
+        async with _run_slot(reserved):
+            return await self._execute(user_message)
+
+    async def _execute(self, user_message: str) -> InteractionResult:
+        self._summary = None
         try:
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_user_message(user_message)
@@ -91,6 +164,7 @@ class InteractionAgentRuntime:
 
         except Exception as exc:
             logger.error("Interaction agent failed", extra={"error": str(exc)})
+            self._tell_user_of_failure(exc)
             return InteractionResult(
                 success=False,
                 response="",
@@ -101,6 +175,11 @@ class InteractionAgentRuntime:
     async def handle_agent_message(self, agent_message: str) -> InteractionResult:
         """Process a status update emitted by an execution agent."""
 
+        async with _run_slot():
+            return await self._handle_agent_message(agent_message)
+
+    async def _handle_agent_message(self, agent_message: str) -> InteractionResult:
+        self._summary = None
         try:
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_agent_message(agent_message)
@@ -126,11 +205,27 @@ class InteractionAgentRuntime:
 
         except Exception as exc:
             logger.error("Interaction agent (agent message) failed", extra={"error": str(exc)})
+            self._tell_user_of_failure(exc)
             return InteractionResult(
                 success=False,
                 response="",
                 error=str(exc),
             )
+
+    def _tell_user_of_failure(self, exc: Exception) -> None:
+        """Write a plain-language reply so a failed run is not silence.
+
+        Rule: if send_message_to_user already delivered a reply this turn, the user has
+        an answer, so no extra apology. Raw exception text never goes to the user.
+        """
+        summary = getattr(self, "_summary", None)
+        if summary is not None and summary.user_messages:
+            return
+        limit_hit = "iteration limit" in str(exc)
+        try:
+            self.conversation_log.record_reply(ITERATION_LIMIT_REPLY if limit_hit else FAILURE_REPLY)
+        except Exception as log_exc:  # pragma: no cover - defensive
+            logger.error("Could not record failure reply", extra={"error": str(log_exc)})
 
     # Core interaction loop that handles LLM calls and tool executions until completion
     async def _run_interaction_loop(
@@ -153,7 +248,7 @@ class InteractionAgentRuntime:
     ) -> _LoopSummary:
         """Iteratively query the LLM until it issues a final response."""
 
-        summary = _LoopSummary()
+        summary = self._summary = _LoopSummary()
 
         for iteration in range(self.MAX_TOOL_ITERATIONS):
             response = await self._make_llm_call(system_prompt, messages)
