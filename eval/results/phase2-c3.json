@@ -1,0 +1,89 @@
+{
+  "interaction_prompt": {
+    "10": {
+      "chars": 10961,
+      "approx_tokens": 2740,
+      "system_chars": 10424
+    },
+    "50": {
+      "chars": 12495,
+      "approx_tokens": 3123,
+      "system_chars": 10424
+    },
+    "100": {
+      "chars": 14522,
+      "approx_tokens": 3630,
+      "system_chars": 10424
+    },
+    "300": {
+      "chars": 22938,
+      "approx_tokens": 5734,
+      "system_chars": 10424
+    }
+  },
+  "execution_prompt": {
+    "5": {
+      "chars": 5719,
+      "approx_tokens": 1429,
+      "system_chars": 5686
+    },
+    "50": {
+      "chars": 11645,
+      "approx_tokens": 2911,
+      "system_chars": 11612
+    },
+    "200": {
+      "chars": 11666,
+      "approx_tokens": 2916,
+      "system_chars": 11633
+    }
+  },
+  "email_flood": {
+    "10": {
+      "classifier_calls": 10,
+      "interaction_runs": 10,
+      "total_model_calls": 20,
+      "wall_s": 1.22
+    },
+    "50": {
+      "classifier_calls": 50,
+      "interaction_runs": 50,
+      "total_model_calls": 100,
+      "wall_s": 6.21
+    }
+  },
+  "burst_triggers": {
+    "due_triggers": 20,
+    "peak_parallel_agents": 20,
+    "interaction_runs": 20,
+    "total_model_calls": 40,
+    "wall_s": 0.28
+  },
+  "burst_agents": {
+    "agents_requested": 8,
+    "peak_parallel_agents": 8,
+    "interaction_runs": 2,
+    "total_model_calls": 11,
+    "wall_s": 0.36
+  },
+  "burst_chat": {
+    "chat_messages": 5,
+    "peak_overlapping_interaction_runs": 5,
+    "interaction_runs": 5,
+    "wall_s": 0.12
+  },
+  "meta": {
+    "label": "phase2-c3",
+    "python": "3.11.8",
+    "git_head": "05088e125223f00b6cf79ce363050a906553bbb3",
+    "src": "C:\\Users\\abhin\\AppData\\Local\\Temp\\claude\\C--Users-abhin-Downloads-openpoke\\e762f018-07a5-4d43-b0d4-1ca471de5bd2\\scratchpad\\phases\\phase2-c3",
+    "timestamp": "2026-10-26T19:36:31",
+    "seams_patched": {
+      "request_chat_completion": 5,
+      "execute_gmail_tool": 7,
+      "get_active_gmail_user_id": 7
+    },
+    "fake_latency_s": 0.05,
+    "exec_sleep_s": 0.2
+  }
+}

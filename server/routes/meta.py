@@ -5,11 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from ..config import Settings, get_settings
 from ..models import (
     HealthResponse,
+    LoadResponse,
     RootResponse,
     SetTimezoneRequest,
     SetTimezoneResponse,
 )
-from ..services import get_timezone_store
+from ..services import get_timezone_store, usage
+from ..services.execution import limits
 
 router = APIRouter(tags=["meta"])
 
@@ -35,6 +37,13 @@ def meta(request: Request, settings: Settings = Depends(get_settings)) -> RootRe
         version=settings.app_version,
         endpoints=endpoints,
     )
+
+
+@router.get("/meta/load", response_model=LoadResponse)
+# Live agent concurrency and model token/cost counters (no prompts, keys or message text)
+def load() -> LoadResponse:
+    # chat-queue counters get added here once they exist
+    return LoadResponse(agents=limits.get_load(), usage=usage.get_usage())
 
 
 @router.post("/meta/timezone", response_model=SetTimezoneResponse)
