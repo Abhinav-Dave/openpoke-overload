@@ -29,4 +29,5 @@ class SetTimezoneResponse(BaseModel):
 
 class LoadResponse(BaseModel):
     agents: Dict[str, int]
+    chat: Dict[str, int]
     usage: Dict[str, Any]

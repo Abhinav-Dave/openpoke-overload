@@ -141,4 +141,5 @@ def test_load_endpoint(net):
     usage.record_success("m", {"prompt_tokens": 3, "completion_tokens": 4})
     body = TestClient(app).get("/api/v1/meta/load").json()
     assert {"running", "waiting", "max_parallel", "peak_running"} <= set(body["agents"])
+    assert {"running", "waiting", "max_queued"} <= set(body["chat"])
     assert body["usage"]["prompt_tokens"] == 3

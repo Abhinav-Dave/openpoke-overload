@@ -12,6 +12,7 @@ from ..models import (
 )
 from ..services import get_timezone_store, usage
 from ..services.execution import limits
+from ..agents.interaction_agent.runtime import get_chat_load
 
 router = APIRouter(tags=["meta"])
 
@@ -42,8 +43,7 @@ def meta(request: Request, settings: Settings = Depends(get_settings)) -> RootRe
 @router.get("/meta/load", response_model=LoadResponse)
 # Live agent concurrency and model token/cost counters (no prompts, keys or message text)
 def load() -> LoadResponse:
-    # chat-queue counters get added here once they exist
-    return LoadResponse(agents=limits.get_load(), usage=usage.get_usage())
+    return LoadResponse(agents=limits.get_load(), chat=get_chat_load(), usage=usage.get_usage())
 
 
 @router.post("/meta/timezone", response_model=SetTimezoneResponse)
