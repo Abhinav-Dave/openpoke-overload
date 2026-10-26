@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, NamedTuple, Optional
 
 from .processing import ProcessedEmail
 from ...config import get_settings
@@ -28,6 +28,13 @@ _TOOL_SCHEMA: Dict[str, Any] = {
                     "description": (
                         "Set to true only when the email requires timely attention, a decision, "
                         "coordination, or contains critical security information (e.g. OTPs)."
+                    ),
+                },
+                "urgent": {
+                    "type": "boolean",
+                    "description": (
+                        "Default false. True only for things that cannot wait for a digest: "
+                        "security codes, time-critical items, or a person waiting on a reply."
                     ),
                 },
                 "summary": {
@@ -55,6 +62,15 @@ _SYSTEM_PROMPT = (
 )
 
 
+class ClassificationFailed(Exception):
+    """The classifier could not decide (API error, bad output); the email should be retried."""
+
+
+class EmailVerdict(NamedTuple):
+    summary: str
+    urgent: bool = False
+
+
 def _format_email_payload(email: ProcessedEmail) -> str:
     attachments = ", ".join(email.attachment_filenames) if email.attachment_filenames else "None"
     labels = ", ".join(email.label_ids) if email.label_ids else "None"
@@ -77,8 +93,11 @@ def _format_email_payload(email: ProcessedEmail) -> str:
     )
 
 
-async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
-    """Return summary text when email should be surfaced; otherwise None."""
+async def classify_email_importance(email: ProcessedEmail) -> Optional[EmailVerdict]:
+    """Return a verdict when the email should be surfaced, None when it is not important.
+
+    Raises ClassificationFailed when no decision could be made.
+    """
 
     settings = get_settings()
     api_key = settings.openrouter_api_key
@@ -86,7 +105,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
 
     if not api_key:
         logger.warning("Skipping importance check; OpenRouter API key missing")
-        return None
+        raise ClassificationFailed("OpenRouter API key missing")
 
     user_payload = _format_email_payload(email)
     messages = [{"role": "user", "content": user_payload}]
@@ -104,13 +123,13 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
             "Importance classification failed",
             extra={"message_id": email.id, "error": str(exc)},
         )
-        return None
+        raise ClassificationFailed(str(exc)) from exc
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception(
             "Unexpected error during importance classification",
             extra={"message_id": email.id},
         )
-        return None
+        raise ClassificationFailed(str(exc)) from exc
 
     choice = (response.get("choices") or [{}])[0]
     message = choice.get("message") or {}
@@ -128,7 +147,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
                 "Importance tool returned invalid arguments",
                 extra={"message_id": email.id},
             )
-            return None
+            raise ClassificationFailed("invalid tool arguments")
 
         important = bool(arguments.get("important"))
         summary = arguments.get("summary")
@@ -141,15 +160,15 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
                 "Importance tool marked email important without summary",
                 extra={"message_id": email.id},
             )
-            return None
+            raise ClassificationFailed("important without summary")
 
-        return summary.strip()
+        return EmailVerdict(summary.strip(), arguments.get("urgent") is True)
 
     logger.debug(
         "Importance classification produced no tool call",
         extra={"message_id": email.id},
     )
-    return None
+    raise ClassificationFailed("no tool call")
 
 
 def _coerce_arguments(raw: Any) -> Optional[Dict[str, Any]]:
@@ -167,4 +186,4 @@ def _coerce_arguments(raw: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
-__all__ = ["classify_email_importance"]
+__all__ = ["classify_email_importance", "ClassificationFailed", "EmailVerdict"]

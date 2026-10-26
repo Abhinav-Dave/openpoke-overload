@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from .client import execute_gmail_tool, get_active_gmail_user_id
 from .processing import EmailTextCleaner, ProcessedEmail, parse_gmail_fetch_response
 from .seen_store import GmailSeenStore
-from .importance_classifier import classify_email_importance
+from .importance_classifier import ClassificationFailed, EmailVerdict, classify_email_importance
 from ...config import DATA_DIR
 from ...logging_config import logger
 from ...utils.timezones import convert_to_user_timezone
@@ -30,6 +31,9 @@ DEFAULT_POLL_INTERVAL_SECONDS = 60.0
 DEFAULT_LOOKBACK_MINUTES = 10
 DEFAULT_MAX_RESULTS = 50
 DEFAULT_SEEN_LIMIT = 300
+MAX_URGENT = int(os.environ.get("OPENPOKE_DIGEST_MAX_URGENT", "3"))
+MAX_ITEMS = int(os.environ.get("OPENPOKE_DIGEST_MAX_ITEMS", "20"))
+CLASSIFY_MAX_ATTEMPTS = int(os.environ.get("OPENPOKE_CLASSIFY_MAX_ATTEMPTS", "3"))
 
 
 _DEFAULT_SEEN_PATH = DATA_DIR / "gmail_seen.json"
@@ -54,6 +58,7 @@ class ImportantEmailWatcher:
         self._cleaner = EmailTextCleaner(max_url_length=60)
         self._has_seeded_initial_snapshot = False
         self._last_poll_timestamp: Optional[datetime] = None
+        self._classify_failures: Dict[str, int] = {}  # email id -> failed attempts (in memory only)
 
     # Start the background email polling task
     async def start(self) -> None:
@@ -137,6 +142,12 @@ class ImportantEmailWatcher:
             cleaner=self._cleaner,
         )
 
+        if len(processed_emails) >= DEFAULT_MAX_RESULTS:
+            logger.warning(
+                "Gmail fetch hit max_results; older unseen mail may have been missed",
+                extra={"returned": len(processed_emails), "max_results": DEFAULT_MAX_RESULTS},
+            )
+
         if not processed_emails:
             logger.debug("No recent Gmail messages found for watcher")
             self._complete_poll(user_now)
@@ -175,7 +186,8 @@ class ImportantEmailWatcher:
             else:
                 email_timestamp = email_timestamp.replace(tzinfo=user_now.tzinfo)
 
-            if email_timestamp < cutoff_time:
+            # Emails awaiting a classifier retry are older than the cutoff by design; keep them.
+            if email_timestamp < cutoff_time and email.id not in self._classify_failures:
                 aged_emails.append(email)
                 continue
 
@@ -194,17 +206,37 @@ class ImportantEmailWatcher:
             self._complete_poll(user_now)
             return
 
-        summaries_sent = 0
         processed_ids: List[str] = [email.id for email in aged_emails]
+        found: List[Tuple[ProcessedEmail, EmailVerdict]] = []
 
         for email in eligible_emails:
-            summary = await classify_email_importance(email)
+            try:
+                verdict = await classify_email_importance(email)
+            except ClassificationFailed:
+                attempts = self._classify_failures.get(email.id, 0) + 1
+                if attempts < CLASSIFY_MAX_ATTEMPTS:
+                    self._classify_failures[email.id] = attempts  # stays unseen; retried next poll
+                    continue
+                self._classify_failures.pop(email.id, None)
+                logger.warning(
+                    "Giving up on email classification",
+                    extra={"message_id": email.id, "attempts": attempts},
+                )
+                verdict = None
+            else:
+                self._classify_failures.pop(email.id, None)
             processed_ids.append(email.id)
-            if not summary:
-                continue
+            if verdict:
+                found.append((email, verdict))
 
-            summaries_sent += 1
-            await self._dispatch_summary(summary)
+        urgent = [f for f in found if f[1].urgent]
+        digest = [f for f in found if not f[1].urgent] + urgent[MAX_URGENT:]
+        digest.sort(key=lambda f: f[0].timestamp)
+        for _, verdict in urgent[:MAX_URGENT]:
+            await self._dispatch_summary(verdict.summary)
+        if digest:
+            await self._dispatch_summary(self._format_digest(digest))
+        summaries_sent = len(found)
 
         if processed_ids:
             self._seen_store.mark_seen(processed_ids)
@@ -218,6 +250,16 @@ class ImportantEmailWatcher:
             },
         )
         self._complete_poll(user_now)
+
+    @staticmethod
+    def _format_digest(items: List[Tuple[ProcessedEmail, EmailVerdict]]) -> str:
+        # A lone item keeps the original single-notification format.
+        if len(items) == 1:
+            return items[0][1].summary
+        lines = [f"- {e.sender} | {e.subject}: {v.summary}" for e, v in items[:MAX_ITEMS]]
+        if len(items) > MAX_ITEMS:
+            lines.append(f"and {len(items) - MAX_ITEMS} more")
+        return f"{len(items)} important emails arrived:\n" + "\n".join(lines)
 
     async def _dispatch_summary(self, summary: str) -> None:
         runtime = _resolve_interaction_runtime()

@@ -8,6 +8,7 @@ from collections import deque
 from pathlib import Path
 from typing import Deque, Iterable, List, Optional, Set
 
+from ..execution.roster import atomic_write_json
 from ...logging_config import logger
 
 
@@ -106,9 +107,7 @@ class GmailSeenStore:
 
     def _persist_locked(self) -> None:
         try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            payload = list(self._entries)
-            self._path.write_text(json.dumps(payload), encoding="utf-8")
+            atomic_write_json(self._path, list(self._entries))
         except Exception as exc:  # pragma: no cover - defensive
             logger.warning(
                 "Failed to persist Gmail seen-store",
