@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 from ...logging_config import logger
+from . import limits
 from .models import TriggerRecord
 from .store import TriggerStore
 from .utils import (
@@ -43,6 +44,8 @@ class TriggerService:
         now = utc_now()
         start_dt_local = coerce_start_datetime(start_time, tz, now)
         stored_recurrence = build_recurrence(recurrence_rule, start_dt_local, tz)
+        limits.check_recurrence(stored_recurrence)
+        limits.check_counts(*self._open_counts(agent_name))
         next_fire = self._compute_next_fire(
             stored_recurrence=stored_recurrence,
             start_dt_local=start_dt_local,
@@ -126,6 +129,9 @@ class TriggerService:
                 if recurrence_source
                 else None
             )
+            # Only a newly supplied rule is checked, so legacy triggers can still be paused or edited.
+            if recurrence_rule is not None:
+                limits.check_recurrence(stored_recurrence)
         else:
             stored_recurrence = recurrence_source
 
@@ -179,6 +185,14 @@ class TriggerService:
 
         updated = self._store.update(trigger_id, agent_name, fields)
         return self._store.fetch_one(trigger_id, agent_name) if updated else existing
+
+    def _open_counts(self, agent_name: str) -> tuple[int, int]:
+        """Return (this agent's, everyone's) triggers that are not completed."""
+
+        sql = "SELECT COUNT(*), COALESCE(SUM(agent_name = ?), 0) FROM triggers WHERE status != 'completed'"
+        with self._store._lock, self._store._connect() as conn:
+            total, mine = conn.execute(sql, (agent_name,)).fetchone()
+        return int(mine), int(total)
 
     def list_triggers(self, *, agent_name: str) -> List[TriggerRecord]:
         return self._store.list_for_agent(agent_name)
