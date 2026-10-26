@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from ...logging_config import logger
 from ...services.conversation import get_conversation_log
-from ...services.execution import get_agent_roster, get_execution_agent_logs
+from ...services.execution import get_agent_roster, get_execution_agent_logs, limits
 from ..execution_agent.batch_manager import ExecutionBatchManager
 
 
@@ -111,6 +111,17 @@ _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 # Create or reuse execution agent and dispatch instructions asynchronously
 def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     """Send instructions to an execution agent."""
+    if not limits.try_start_agent(agent_name):
+        return ToolResult(
+            success=False,
+            payload={
+                "error": (
+                    f"Too many agents started this turn (max {limits.MAX_AGENTS_PER_TURN}). "
+                    "Combine the tasks into fewer agents, or wait for results first."
+                )
+            },
+        )
+
     roster = get_agent_roster()
     roster.load()
     existing_agents = set(roster.get_agents())

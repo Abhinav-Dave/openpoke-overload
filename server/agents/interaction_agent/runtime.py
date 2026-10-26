@@ -8,6 +8,7 @@ from .agent import build_system_prompt, prepare_message_with_history
 from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
+from ...services.execution import limits
 from ...openrouter_client import request_chat_completion
 from ...logging_config import logger
 
@@ -137,6 +138,19 @@ class InteractionAgentRuntime:
         system_prompt: str,
         messages: List[Dict[str, Any]],
     ) -> _LoopSummary:
+        """Run one turn; agent starts are capped per turn via a contextvar (see limits)."""
+
+        token = limits.start_turn()
+        try:
+            return await self._run_turn(system_prompt, messages)
+        finally:
+            limits.end_turn(token)
+
+    async def _run_turn(
+        self,
+        system_prompt: str,
+        messages: List[Dict[str, Any]],
+    ) -> _LoopSummary:
         """Iteratively query the LLM until it issues a final response."""
 
         summary = _LoopSummary()
@@ -166,12 +180,12 @@ class InteractionAgentRuntime:
             for tool_call in parsed_tool_calls:
                 summary.tool_names.append(tool_call.name)
 
-                if tool_call.name == "send_message_to_agent":
+                result = self._execute_tool(tool_call)
+
+                if tool_call.name == "send_message_to_agent" and result.success:
                     agent_name = tool_call.arguments.get("agent_name")
                     if isinstance(agent_name, str) and agent_name:
                         summary.execution_agents.add(agent_name)
-
-                result = self._execute_tool(tool_call)
 
                 if result.user_message:
                     summary.user_messages.append(result.user_message)

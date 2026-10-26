@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
+from ...services.execution import limits
 
 
 @dataclass
@@ -60,10 +61,13 @@ class ExecutionBatchManager:
         try:
             logger.info(f"[{agent_name}] Execution started")
             runtime = ExecutionAgentRuntime(agent_name=agent_name)
-            result = await asyncio.wait_for(
-                runtime.execute(instructions),
-                timeout=self.timeout_seconds,
-            )
+            # The timeout clock starts after the slot is acquired, so queueing never
+            # counts against the agent's 90 s.
+            async with limits.agent_slot():
+                result = await asyncio.wait_for(
+                    runtime.execute(instructions),
+                    timeout=self.timeout_seconds,
+                )
             status = "SUCCESS" if result.success else "FAILED"
             logger.info(f"[{agent_name}] Execution finished: {status}")
         except asyncio.TimeoutError:
