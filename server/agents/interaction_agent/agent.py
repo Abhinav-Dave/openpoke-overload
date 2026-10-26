@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from ...services.execution import get_agent_roster
+from ...services.execution.roster_view import select_agents
 
 _prompt_path = Path(__file__).parent / "system_prompt.md"
 SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
@@ -26,7 +27,7 @@ def prepare_message_with_history(
     sections: List[str] = []
 
     sections.append(_render_conversation_history(transcript))
-    sections.append(f"<active_agents>\n{_render_active_agents()}\n</active_agents>")
+    sections.append(f"<active_agents>\n{_render_active_agents(latest_text, message_type)}\n</active_agents>")
     sections.append(_render_current_turn(latest_text, message_type))
 
     content = "\n\n".join(sections)
@@ -41,8 +42,8 @@ def _render_conversation_history(transcript: str) -> str:
     return f"<conversation_history>\n{history}\n</conversation_history>"
 
 
-# Format currently active execution agents into XML tags for LLM awareness
-def _render_active_agents() -> str:
+# Format the execution agents likely to fit this turn into XML tags for LLM awareness
+def _render_active_agents(query: str = "", message_type: str = "user") -> str:
     roster = get_agent_roster()
     roster.load()
     agents = roster.get_agents()
@@ -50,10 +51,25 @@ def _render_active_agents() -> str:
     if not agents:
         return "None"
 
+    is_result = message_type == "agent"
+    named = [a for a in agents if a and a in query] if is_result else []
+    shown, hidden, no_match = select_agents(query, agents, include=named)
+    no_match = no_match and not is_result  # a result payload is not a new request
+
     rendered: List[str] = []
-    for agent_name in agents:
-        name = escape(agent_name or "agent", quote=True)
-        rendered.append(f'<agent name="{name}" />')
+    for view in shown:
+        name = escape(view.name or "agent", quote=True)
+        if view.description:
+            rendered.append(f'<agent name="{name}">{escape(view.description, quote=False)}</agent>')
+        else:
+            rendered.append(f'<agent name="{name}" />')
+    if hidden:
+        rendered.append(f"{hidden} more agents are not shown. You can still reuse any agent by its exact name.")
+    if no_match:
+        rendered.append(
+            "No listed agent fits this message. Create a new agent with a short descriptive name, "
+            "unless the user clearly means an older agent (then reuse it by its exact name)."
+        )
 
     return "\n".join(rendered)
 
