@@ -8,12 +8,15 @@ from html import escape, unescape
 from pathlib import Path
 from typing import Dict, Iterator, List, Tuple
 
+from ...config import DATA_DIR
 from ...logging_config import logger
 from ...utils.timezones import now_in_user_timezone
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
-_EXECUTION_LOG_DIR = _DATA_DIR / "execution_agents"
+_EXECUTION_LOG_DIR = DATA_DIR / "execution_agents"
+
+
+_WINDOWS_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
 
 
 def _slugify(name: str) -> str:
@@ -21,7 +24,9 @@ def _slugify(name: str) -> str:
     slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in name.strip()).strip("-")
     while "--" in slug:
         slug = slug.replace("--", "-")
-    return slug or "agent"
+    slug = slug or "agent"
+    # Windows rejects these device names as file names, even with an extension.
+    return f"agent-{slug}" if slug in _WINDOWS_RESERVED else slug
 
 
 def _encode_payload(payload: str) -> str:

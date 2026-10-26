@@ -39,6 +39,11 @@ def _env_int(name: str, fallback: int) -> int:
         return fallback
 
 
+# All persistent state lives here. Set OPENPOKE_DATA_DIR before the server package is imported
+# (stores build their paths at import time); tests set it in tests/conftest.py.
+DATA_DIR = Path(os.getenv("OPENPOKE_DATA_DIR") or Path(__file__).resolve().parent / "data")
+
+
 # anthropic/claude-sonnet-4 is no longer served by OpenRouter, so the default moved to a current cheap model.
 DEFAULT_MODEL = os.getenv("OPENPOKE_MODEL", "anthropic/claude-haiku-5.5")
 
@@ -57,6 +62,8 @@ class Settings(BaseModel):
     # Server runtime
     server_host: str = Field(default=os.getenv("OPENPOKE_HOST", "0.0.0.0"))
     server_port: int = Field(default=_env_int("OPENPOKE_PORT", 8001))
+
+    data_dir: Path = Field(default=DATA_DIR)
 
     # LLM model selection
     # Override all with OPENPOKE_MODEL, or one role with OPENPOKE_<ROLE>_MODEL.

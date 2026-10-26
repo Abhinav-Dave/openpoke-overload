@@ -8,13 +8,13 @@ from html import escape, unescape
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from ....config import DATA_DIR
 from ....logging_config import logger
 from ....utils.timezones import now_in_user_timezone
 from .state import LogEntry, SummaryState
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
-_WORKING_MEMORY_LOG_PATH = _DATA_DIR / "conversation" / "poke_working_memory.log"
+_WORKING_MEMORY_LOG_PATH = DATA_DIR / "conversation" / "poke_working_memory.log"
 
 
 def _encode_payload(payload: str) -> str:
