@@ -17,6 +17,8 @@ HOT_N = int(os.getenv("OPENPOKE_ROSTER_HOT_N", "3"))
 MIN_SCORE = float(os.getenv("OPENPOKE_ROSTER_MIN_SCORE", "2.0"))
 MIN_CONTENT_TOKENS = int(os.getenv("OPENPOKE_ROSTER_MIN_CONTENT_TOKENS", "2"))
 MIN_COVERAGE = float(os.getenv("OPENPOKE_ROSTER_MIN_COVERAGE", "0.0"))
+BOUND_ABOVE = int(os.getenv("OPENPOKE_ROSTER_BOUND_ABOVE", "200"))  # at most this many agents: list every name (original)
+TAIL_NAMES = int(os.getenv("OPENPOKE_ROSTER_TAIL_NAMES", "200"))  # names in the compact tail of the bounded view
 FIND_LIMIT = 5
 
 DESC_CHARS = 100
@@ -93,14 +95,14 @@ def select_agents(
 ) -> tuple[list[AgentView], int, bool]:
     """Return (agents to show, number hidden, no_match).
 
-    Rosters of k + hot_n or fewer are returned whole, names only (the legacy prompt format).
+    Rosters of BOUND_ABOVE or fewer are returned whole, names only (the legacy prompt format).
     Otherwise: top-k by score, the hot_n most recently used, and anything in `include`.
     """
     k = K if k is None else k
     hot_n = HOT_N if hot_n is None else hot_n
     min_score = MIN_SCORE if min_score is None else min_score
     min_coverage = MIN_COVERAGE if min_coverage is None else min_coverage
-    if len(agent_names) <= k + hot_n:
+    if len(agent_names) <= BOUND_ABOVE:
         return [AgentView(n) for n in agent_names], 0, False
 
     info = [_read_agent(n) for n in agent_names]
@@ -121,6 +123,21 @@ def select_agents(
 
     shown = [AgentView(agent_names[i], info[i][0]) for i in picked]
     return shown, len(agent_names) - len(shown), no_match
+
+
+def tail_names(agent_names: list[str], shown: Iterable[str], cap: Optional[int] = None) -> tuple[list[str], int]:
+    """Names not in `shown`, most recently used first, capped; plus how many were cut."""
+    cap = TAIL_NAMES if cap is None else cap
+    skip = set(shown)
+
+    def mtime(n: str) -> float:
+        try:
+            return get_execution_agent_logs()._log_path(n).stat().st_mtime
+        except OSError:
+            return 0.0
+
+    rest = sorted((n for n in agent_names if n not in skip), key=lambda n: -mtime(n))
+    return rest[:cap], max(0, len(rest) - cap)
 
 
 def find_agents(keywords: str, agent_names: list[str], limit: int = FIND_LIMIT) -> list[AgentView]:

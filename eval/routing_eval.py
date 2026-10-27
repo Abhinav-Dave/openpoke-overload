@@ -15,7 +15,7 @@ OUT = ROOT / "eval" / "results" / "routing_eval.json"
 SEED = 7
 BASE_AGE_S = 10 * 86400   # baseline log age; each agent a little older than the previous one
 KS, MIN_SCORES = (4, 8, 12, 20), (1, 2, 3, 4)
-SIZES = (10, 50, 100, 300, 600)
+SIZES = (10, 100, 200, 300, 600, 1000)
 CATEGORIES = ("direct", "paraphrase", "disambiguation", "followup", "no_match", "offtopic")
 
 
@@ -77,6 +77,7 @@ def run_queries(agent_mod, roster_view, logs, queries, *, k=None, min_score=None
         else:
             res = real(query, names, k=k, min_score=min_score, **kw)
         captured["res"] = res
+        captured["names"] = names
         return res
 
     orig = agent_mod.select_agents
@@ -97,9 +98,12 @@ def run_queries(agent_mod, roster_view, logs, queries, *, k=None, min_score=None
                 ms = (time.perf_counter() - t0) * 1000
                 if path is not None:
                     os.utime(path, (restore, restore))
-            shown, _, no_match = captured["res"]
+            shown, hidden, no_match = captured["res"]
+            seen = {v.name for v in shown}
+            tail = set(roster_view.tail_names(captured["names"], seen)[0]) if hidden else set()  # the compact names-only line
             rows.append({"category": q["category"], "expected": q["expected"],
-                         "visible": q["expected"] in {v.name for v in shown} if q["expected"] else None,
+                         "visible": q["expected"] in seen if q["expected"] else None,
+                         "name_visible": q["expected"] in seen | tail if q["expected"] else None,
                          "no_match": no_match, "shown": len(shown), "chars": len(block), "ms": ms})
     finally:
         agent_mod.select_agents = orig
@@ -115,6 +119,7 @@ def metrics(rows):
     neg = [r for r in rows if not r["expected"]]
     return {"n": len(rows),
             "visible_recall": _rate([r["visible"] for r in pos]),
+            "name_visible_recall": _rate([r["name_visible"] for r in pos]),
             "false_no_match_rate": _rate([r["no_match"] for r in pos]),
             "no_match_correct_rate": _rate([r["no_match"] for r in neg]),
             "shown_agents_mean": round(sum(r["shown"] for r in rows) / len(rows), 2) if rows else None,
@@ -142,9 +147,9 @@ def fmt(v):
 
 def scorecard(title, cats, overall):
     print(f"\n{title}")
-    print(f"{'category':15}{'n':>4} {'vis_recall':>10} {'false_nomatch':>13} {'nomatch_ok':>10} {'shown':>6} {'chars':>7}")
+    print(f"{'category':15}{'n':>4} {'vis_recall':>10} {'name_vis':>8} {'false_nomatch':>13} {'nomatch_ok':>10} {'shown':>6} {'chars':>7}")
     for name, m in list(cats.items()) + [("OVERALL", overall)]:
-        print(f"{name:15}{m['n']:>4} {fmt(m['visible_recall']):>10} {fmt(m['false_no_match_rate']):>13} "
+        print(f"{name:15}{m['n']:>4} {fmt(m['visible_recall']):>10} {fmt(m['name_visible_recall']):>8} {fmt(m['false_no_match_rate']):>13} "
               f"{fmt(m['no_match_correct_rate']):>10} {m['shown_agents_mean']:>6} {m['block_chars_mean']:>7}")
 
 
@@ -186,6 +191,7 @@ def main():
           "  Caveat: names-only gives the model no description to choose with. This offline test cannot measure that; the live check will.")
 
     sweep = []
+    roster_view.BOUND_ABOVE = 0   # the sweep tunes the bounded view, which is otherwise off below 200 agents
     print("\nSWEEP on DEV split (K x MIN_SCORE; HOT_N fixed)")
     print(f"{'K':>4}{'MIN':>5}{'vis_recall':>11}{'false_nomatch':>14}{'nomatch_ok':>11}{'block_chars':>12}")
     for k in KS:
@@ -195,10 +201,11 @@ def main():
             print(f"{k:>4}{ms:>5}{fmt(m['visible_recall']):>11}{fmt(m['false_no_match_rate']):>14}"
                   f"{fmt(m['no_match_correct_rate']):>11}{m['block_chars_mean']:>12}")
     result["sweep_dev"] = sweep
+    roster_view.BOUND_ABOVE = int(os.getenv("OPENPOKE_ROSTER_BOUND_ABOVE", "200"))
 
     curve = []
     print("\nROSTER-SIZE CURVE (test split, current defaults; queries whose expected agent exists in the roster)")
-    print(f"{'N':>5}{'cloned':>8}{'n_q':>5}{'vis_recall':>11}{'false_nomatch':>14}{'block_chars':>12}{'baseline_chars':>15}{'ms/query':>10}")
+    print(f"{'N':>5}{'cloned':>8}{'n_q':>5}{'vis_recall':>11}{'name_vis':>9}{'false_nomatch':>14}{'block_chars':>12}{'baseline_chars':>15}{'ms/query':>10}")
     for n in SIZES:
         ro = with_clones(agents, n, random.Random(SEED))
         build(roster, logs, ro)
@@ -207,7 +214,7 @@ def main():
         mb = metrics(evaluate(env, ro, qs, names_only=True))
         cl = sum(a["cloned"] for a in ro)
         curve.append({"N": n, "cloned": cl, **m, "baseline_block_chars_mean": mb["block_chars_mean"]})
-        print(f"{n:>5}{cl:>8}{m['n']:>5}{fmt(m['visible_recall']):>11}{fmt(m['false_no_match_rate']):>14}"
+        print(f"{n:>5}{cl:>8}{m['n']:>5}{fmt(m['visible_recall']):>11}{fmt(m['name_visible_recall']):>9}{fmt(m['false_no_match_rate']):>14}"
               f"{m['block_chars_mean']:>12}{mb['block_chars_mean']:>15}{m['select_ms_mean']:>10}")
     result["size_curve_test"] = curve
 

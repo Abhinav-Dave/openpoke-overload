@@ -42,6 +42,23 @@ def test_classify_four_outcomes_and_edge_cases():
     assert c([tc("send_message_to_agent", "b-agent"), tc("send_message_to_agent", "a-agent")]) == "reused_other"
 
 
+def test_clone_of_expected_agent_counts_as_reused_expected():
+    seeded = SEEDED | {"a-agent-2", "a-agent-3", "a-agent-extra"}
+    c = lambda name: le.classify([tc("send_message_to_agent", name)], seeded, "a-agent")["outcome"]
+    assert c("a-agent-2") == "reused_expected" and c("a-agent-3") == "reused_expected"
+    assert c("a-agent-extra") == "reused_other"      # not a clone suffix
+
+
+def test_followup_history_has_user_request_and_agent_report():
+    from server.services.conversation import get_conversation_log
+
+    log = get_conversation_log()
+    le.seed_followup_history(log, "a-agent")
+    transcript = log.load_transcript()
+    assert "[SUCCESS] a-agent: Draft ready for your review." in transcript
+    assert transcript.index("user_message") < transcript.index("agent_message")
+
+
 def test_classify_find_agents_order():
     r = le.classify([tc("find_agents"), tc("send_message_to_agent", "a-agent")], SEEDED, "a-agent")
     assert r["find_called"] and r["find_before_choice"]

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from ...services.execution import get_agent_roster
-from ...services.execution.roster_view import select_agents
+from ...services.execution.roster_view import select_agents, tail_names
 
 _prompt_path = Path(__file__).parent / "system_prompt.md"
 SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
@@ -67,6 +67,9 @@ def _render_active_agents(query: str = "", message_type: str = "user") -> str:
             rendered.append(f'<agent name="{name}" />')
     if hidden:
         rendered.append(f"{hidden} more agents are not shown. You can still reuse any agent by its exact name. {_FIND_HINT}")
+        tail, cut = tail_names(agents, [v.name for v in shown])
+        line = "Other agents (most recent first): " + ", ".join(escape(n, quote=True) for n in tail)
+        rendered.append(line + (f" and {cut} more (use find_agents)" if cut else ""))
     if no_match:
         rendered.append(
             "No listed agent fits this message. Create a new agent with a short descriptive name, "

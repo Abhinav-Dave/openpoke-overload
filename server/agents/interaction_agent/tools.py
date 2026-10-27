@@ -251,7 +251,7 @@ def get_tool_schemas():
     """Return OpenAI-compatible tool schemas."""
     roster = get_agent_roster()
     roster.load()
-    if len(roster.get_agents()) > roster_view.K + roster_view.HOT_N:
+    if len(roster.get_agents()) > roster_view.BOUND_ABOVE:
         return TOOL_SCHEMAS + [FIND_AGENTS_SCHEMA]
     return TOOL_SCHEMAS
 

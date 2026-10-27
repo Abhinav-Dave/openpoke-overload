@@ -149,3 +149,11 @@ async def test_model_finds_older_agent_instead_of_creating_a_duplicate(fake_llm,
     assert stub.started == ["misc-helper"]
     assert len(get_agent_roster().get_agents()) == size
     assert result.execution_agents_used == 1
+
+
+@__import__("pytest").fixture(autouse=True)
+def _bound_at_eleven(monkeypatch):
+    # these tests exercise the bounded view on small rosters; production activates it above 200 agents
+    from server.services.execution import roster_view as _rv
+
+    monkeypatch.setattr(_rv, "BOUND_ABOVE", 11)

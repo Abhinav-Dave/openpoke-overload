@@ -62,7 +62,7 @@ def test_small_run_has_expected_keys(env, data):
     agents, queries = small_set(*data)
     ev.build(env[2], env[3], agents)
     m = ev.metrics(ev.evaluate(env, agents, queries))
-    assert set(m) == {"n", "visible_recall", "false_no_match_rate", "no_match_correct_rate",
+    assert set(m) == {"n", "visible_recall", "name_visible_recall", "false_no_match_rate", "no_match_correct_rate",
                       "shown_agents_mean", "block_chars_mean", "select_ms_mean"}
     assert m["n"] == 10 and m["block_chars_mean"] > 0
     base = ev.metrics(ev.evaluate(env, agents, queries, names_only=True))
@@ -83,3 +83,12 @@ def test_random_chooser_scores_lower_than_real(env, data, monkeypatch):
     monkeypatch.setattr(env[1], "select_agents", random_pick)
     rand = ev.metrics(ev.evaluate(env, agents, queries))["visible_recall"]
     assert real - rand >= 0.3, (real, rand)
+
+
+def test_name_visible_recall_counts_the_compact_tail(env, data, monkeypatch):
+    agents, queries = small_set(*data)
+    ev.build(env[2], env[3], agents)
+    monkeypatch.setattr(env[1], "BOUND_ABOVE", 0)  # force the bounded view on a 20-agent roster
+    m = ev.metrics(ev.evaluate(env, agents, queries))
+    assert m["visible_recall"] < 1.0 or m["shown_agents_mean"] < 20
+    assert m["name_visible_recall"] == 1.0

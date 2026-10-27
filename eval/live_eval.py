@@ -10,7 +10,7 @@ execution agents never start (the start is recorded), Gmail raises if touched. T
 subprocess with its own data dir. The key is read from the process environment only; no .env file is read here.
 Output: eval/results/live_eval.json (rows + summary). Never prints the key, prompts or email text.
 """
-import argparse, asyncio, io, json, math, os, random, shutil, subprocess, sys, tarfile, tempfile, time
+import argparse, asyncio, io, json, math, os, random, re, shutil, subprocess, sys, tarfile, tempfile, time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -51,9 +51,16 @@ def classify(tool_calls, seeded, expected):
         outcome, agent = "no_agent_call", None
     else:
         agent = tool_calls[agent_idx[0]][1]
-        outcome = "reused_expected" if agent == expected else "reused_other" if agent in seeded else "created_new"
+        is_expected = expected and (agent == expected or re.fullmatch(re.escape(expected) + r"-\d+", agent))  # with_clones suffix
+        outcome = "reused_expected" if is_expected else "reused_other" if agent in seeded else "created_new"
     return {"outcome": outcome, "agent": agent, "find_called": bool(find_idx),
             "find_before_choice": bool(find_idx and agent_idx and find_idx[0] < agent_idx[0])}
+
+
+def seed_followup_history(conversation_log, agent_name):
+    """A realistic earlier exchange, recorded the way the runtime records it, so "send it" has something to refer to."""
+    conversation_log.record_user_message("Please prepare that for me.")
+    conversation_log.record_agent_message(f"[SUCCESS] {agent_name}: Draft ready for your review.")
 
 
 def _rate(num, den):
@@ -329,6 +336,7 @@ def worker_main(a):
         if q.get("last_used"):            # follow-up: the user just used this agent
             now = time.time()
             os.utime(logs._log_path(q["last_used"]), (now, now))
+            seed_followup_history(get_conversation_log(), q["last_used"])
         state.reset()
         roster_size = len(roster.get_agents())
         res = asyncio.run(_one(InteractionAgentRuntime, q["text"]))

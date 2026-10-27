@@ -74,3 +74,11 @@ def test_coverage_rule_keeps_a_well_covered_query(seeded):
 def test_coverage_default_is_a_fraction():
     assert 0.0 <= roster_view.MIN_COVERAGE <= 1.0
     assert roster_view.MIN_CONTENT_TOKENS == 2
+
+
+@__import__("pytest").fixture(autouse=True)
+def _bound_at_eleven(monkeypatch):
+    # these tests exercise the bounded view on small rosters; production activates it above 200 agents
+    from server.services.execution import roster_view as _rv
+
+    monkeypatch.setattr(_rv, "BOUND_ABOVE", 11)

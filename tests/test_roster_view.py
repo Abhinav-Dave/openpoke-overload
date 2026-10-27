@@ -175,3 +175,11 @@ def test_accuracy_check_discriminates_a_random_scorer(seeded, monkeypatch):
     monkeypatch.setattr(roster_view, "_scores", lambda q, docs: [rng.random() + 1 for _ in docs])
     top1 = sum(names(select_agents(q, seeded, k=3, hot_n=0)[0])[:1] == [e] for q, e in QUERIES)
     assert top1 < 0.85 * len(QUERIES)
+
+
+@__import__("pytest").fixture(autouse=True)
+def _bound_at_eleven(monkeypatch):
+    # these tests exercise the bounded view on small rosters; production activates it above 200 agents
+    from server.services.execution import roster_view as _rv
+
+    monkeypatch.setattr(_rv, "BOUND_ABOVE", 11)

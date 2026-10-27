@@ -41,7 +41,7 @@ def test_big_roster_block_is_much_smaller_than_legacy(capsys):
     legacy = "\n".join(f'<agent name="{escape(n, quote=True)}" />' for n in made)
     block = agents_block(prompt("any news on the invoices for acme"))
     print(f"\nlegacy block {len(legacy)} chars, new block {len(block)} chars, ratio {len(block) / len(legacy):.2f}")
-    assert len(block) < 0.35 * len(legacy)
+    assert len(block) < 0.6 * len(legacy)  # every name stays visible in the compact tail
     assert "more agents are not shown" in block
     assert "invoices-acme" in block
 
@@ -63,3 +63,11 @@ def test_agent_result_turn_shows_the_agents_named_in_the_payload():
     named = made[57]
     block = agents_block(prompt(f"[SUCCESS] {named}: done", kind="agent"))
     assert f'name="{named}"' in block
+
+
+@__import__("pytest").fixture(autouse=True)
+def _bound_at_eleven(monkeypatch):
+    # these tests exercise the bounded view on small rosters; production activates it above 200 agents
+    from server.services.execution import roster_view as _rv
+
+    monkeypatch.setattr(_rv, "BOUND_ABOVE", 11)
