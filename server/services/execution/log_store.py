@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import threading
@@ -20,8 +21,19 @@ _EXECUTION_LOG_DIR = DATA_DIR / "execution_agents"
 _WINDOWS_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
 
 
+_CANONICAL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+
+
+def _file_slug(name: str) -> str:
+    """Filesystem-safe slug. Canonical names keep the legacy slug; others add a short stable hash."""
+    slug = _slugify(name)
+    if _CANONICAL.fullmatch(name):
+        return slug
+    return f"{slug}-{hashlib.sha1(name.encode('utf-8')).hexdigest()[:6]}"
+
+
 def _slugify(name: str) -> str:
-    """Convert agent name to filesystem-safe slug."""
+    """The original slug. Different names can collapse to the same one."""
     slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in name.strip()).strip("-")
     while "--" in slug:
         slug = slug.replace("--", "-")
@@ -67,15 +79,36 @@ class ExecutionAgentLogStore:
 
     def _lock_for(self, agent_name: str) -> threading.Lock:
         """Get or create a lock for an agent."""
-        slug = _slugify(agent_name)
+        slug = self._log_path(agent_name).stem
         with self._global_lock:
             if slug not in self._locks:
                 self._locks[slug] = threading.Lock()
             return self._locks[slug]
 
+    @staticmethod
+    def _roster_has(name: str) -> bool:
+        """True if the roster has an agent with exactly this name. On failure, True (no adoption)."""
+        try:
+            from .roster import get_agent_roster  # lazy: avoids an import cycle
+
+            return name in get_agent_roster().get_agents()
+        except Exception as exc:
+            logger.warning(f"Roster lookup failed, not adopting legacy log: {exc}")
+            return True
+
     def _log_path(self, agent_name: str) -> Path:
         """Get log file path for an agent."""
-        return self._base_dir / f"{_slugify(agent_name)}.log"
+        path = self._base_dir / f"{_file_slug(agent_name)}.log"
+        if not path.exists():
+            # Logs written before slugs carried a hash live under the old slug; keep using them.
+            # Not if that file belongs to a canonical agent whose name equals the old slug.
+            # Accepted rare ambiguity: if that canonical agent is created after this name
+            # adopted the file, they share it.
+            old = _slugify(agent_name)
+            legacy = self._base_dir / f"{old}.log"
+            if legacy.exists() and not self._roster_has(old):
+                return legacy
+        return path
 
     def _append(self, agent_name: str, tag: str, payload: str) -> None:
         """Append an entry with the given tag."""

@@ -4,7 +4,7 @@ from typing import Optional, Union
 from fastapi import status
 from fastapi.responses import JSONResponse, PlainTextResponse
 
-from ...agents.interaction_agent.runtime import InteractionAgentRuntime, reserve_chat_slot
+from ...agents.interaction_agent.runtime import InteractionAgentRuntime, release_chat_slot, reserve_chat_slot
 from ...logging_config import logger
 from ...models import ChatMessage, ChatRequest
 from ...utils import error_response
@@ -44,12 +44,20 @@ async def handle_chat_request(payload: ChatRequest) -> Union[PlainTextResponse, 
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
+    started = False
+
     async def _run_interaction() -> None:
+        nonlocal started
+        # No await between here and execute() taking over the slot (_run_slot), so
+        # started=True means _run_slot releases it exactly once, even on cancellation.
+        started = True
         try:
             await runtime.execute(user_message=user_content, reserved=True)
         except Exception as exc:  # pragma: no cover - defensive
             logger.error("chat task failed", extra={"error": str(exc)})
 
-    asyncio.create_task(_run_interaction())
+    task = asyncio.create_task(_run_interaction())
+    # Cancelled before its first step: the coroutine never ran, so nobody else frees the slot.
+    task.add_done_callback(lambda _t: None if started else release_chat_slot())
 
     return PlainTextResponse("", status_code=status.HTTP_202_ACCEPTED)

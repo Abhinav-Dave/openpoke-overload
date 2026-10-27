@@ -28,6 +28,10 @@ MAX_QUEUED_CHAT = _env_int("OPENPOKE_MAX_QUEUED_CHAT", 10)
 ITERATION_LIMIT_REPLY = "I got stuck going in circles on that and could not finish. Please try again."
 FAILURE_REPLY = "I ran into a problem and could not finish that. Please try again."
 
+
+class IterationLimitError(RuntimeError):
+    """The tool loop hit MAX_TOOL_ITERATIONS without a final response."""
+
 # One interaction run at a time. Lazy per loop, like limits.py. Only user chat turns are
 # ever rejected (see reserve_chat_slot); agent/email/trigger turns always wait their turn.
 # ponytail: one global lock; per-conversation locks if there ever is more than one conversation.
@@ -58,6 +62,12 @@ def reserve_chat_slot() -> bool:
         return False
     _waiting += 1
     return True
+
+
+def release_chat_slot() -> None:
+    """Give back a reserved slot whose run never started (never goes below zero)."""
+    global _waiting
+    _waiting = max(0, _waiting - 1)
 
 
 @asynccontextmanager
@@ -221,8 +231,8 @@ class InteractionAgentRuntime:
         summary = getattr(self, "_summary", None)
         if summary is not None and summary.user_messages:
             return
-        limit_hit = "iteration limit" in str(exc)
         try:
+            limit_hit = isinstance(exc, IterationLimitError)
             self.conversation_log.record_reply(ITERATION_LIMIT_REPLY if limit_hit else FAILURE_REPLY)
         except Exception as log_exc:  # pragma: no cover - defensive
             logger.error("Could not record failure reply", extra={"error": str(log_exc)})
@@ -292,7 +302,7 @@ class InteractionAgentRuntime:
                 }
                 messages.append(tool_message)
         else:
-            raise RuntimeError("Reached tool iteration limit without final response")
+            raise IterationLimitError("Reached tool iteration limit without final response")
 
         if not summary.user_messages and not summary.last_assistant_text:
             logger.warning("Interaction loop exited without assistant content")
