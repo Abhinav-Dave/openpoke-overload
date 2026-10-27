@@ -10,6 +10,8 @@ from ...services.execution.roster_view import select_agents
 _prompt_path = Path(__file__).parent / "system_prompt.md"
 SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
 
+_FIND_HINT = "If an older agent might fit, call find_agents with a few keywords (try synonyms) before creating a new agent."
+
 
 # Load and return the pre-defined system prompt from markdown file
 def build_system_prompt() -> str:
@@ -64,11 +66,11 @@ def _render_active_agents(query: str = "", message_type: str = "user") -> str:
         else:
             rendered.append(f'<agent name="{name}" />')
     if hidden:
-        rendered.append(f"{hidden} more agents are not shown. You can still reuse any agent by its exact name.")
+        rendered.append(f"{hidden} more agents are not shown. You can still reuse any agent by its exact name. {_FIND_HINT}")
     if no_match:
         rendered.append(
             "No listed agent fits this message. Create a new agent with a short descriptive name, "
-            "unless the user clearly means an older agent (then reuse it by its exact name)."
+            "unless the user clearly means an older agent (then reuse it by its exact name). " + _FIND_HINT
         )
 
     return "\n".join(rendered)

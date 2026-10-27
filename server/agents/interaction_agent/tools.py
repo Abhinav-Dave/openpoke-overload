@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from ...logging_config import logger
 from ...services.conversation import get_conversation_log
-from ...services.execution import get_agent_roster, get_execution_agent_logs, limits
+from ...services.execution import get_agent_roster, get_execution_agent_logs, limits, roster_view
 from ..execution_agent.batch_manager import ExecutionBatchManager
 
 
@@ -105,7 +105,34 @@ TOOL_SCHEMAS = [
     },
 ]
 
+# Only offered when the roster view is bounded (see get_tool_schemas), so small rosters keep the old tool list.
+FIND_AGENTS_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "find_agents",
+        "description": "Search ALL existing agents (including ones not listed) by keywords. Returns up to 5 names with one-line descriptions. Does not start or change anything.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "keywords": {"type": "string", "description": "A few words about the topic; try synonyms if nothing is found."},
+            },
+            "required": ["keywords"],
+            "additionalProperties": False,
+        },
+    },
+}
+
 _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
+
+
+# Look up older agents by keywords; read-only and not counted against the per-turn agent cap
+def find_agents(keywords: str) -> ToolResult:
+    roster = get_agent_roster()
+    roster.load()
+    found = roster_view.find_agents(str(keywords), roster.get_agents())
+    if not found:
+        return ToolResult(success=True, payload={"agents": [], "message": "No existing agent matches those keywords."})
+    return ToolResult(success=True, payload={"agents": [{"name": a.name, "description": a.description} for a in found]})
 
 
 # Create or reuse execution agent and dispatch instructions asynchronously
@@ -222,6 +249,10 @@ def wait(reason: str) -> ToolResult:
 # Return predefined tool schemas for LLM function calling
 def get_tool_schemas():
     """Return OpenAI-compatible tool schemas."""
+    roster = get_agent_roster()
+    roster.load()
+    if len(roster.get_agents()) > roster_view.K + roster_view.HOT_N:
+        return TOOL_SCHEMAS + [FIND_AGENTS_SCHEMA]
     return TOOL_SCHEMAS
 
 
@@ -244,6 +275,8 @@ def handle_tool_call(name: str, arguments: Any) -> ToolResult:
             return send_draft(**args)
         if name == "wait":
             return wait(**args)
+        if name == "find_agents":
+            return find_agents(**args)
 
         logger.warning("unexpected tool", extra={"tool": name})
         return ToolResult(success=False, payload={"error": f"Unknown tool: {name}"})

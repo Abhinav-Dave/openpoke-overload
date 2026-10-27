@@ -15,6 +15,9 @@ from .log_store import get_execution_agent_logs
 K = int(os.getenv("OPENPOKE_ROSTER_VIEW_K", "8"))
 HOT_N = int(os.getenv("OPENPOKE_ROSTER_HOT_N", "3"))
 MIN_SCORE = float(os.getenv("OPENPOKE_ROSTER_MIN_SCORE", "2.0"))
+MIN_CONTENT_TOKENS = int(os.getenv("OPENPOKE_ROSTER_MIN_CONTENT_TOKENS", "2"))
+MIN_COVERAGE = float(os.getenv("OPENPOKE_ROSTER_MIN_COVERAGE", "0.0"))
+FIND_LIMIT = 5
 
 DESC_CHARS = 100
 RECENT_REQUESTS = 3
@@ -58,9 +61,13 @@ def _read_agent(name: str) -> tuple[str, str, float]:
     return description, f"{description} {recent}", mtime
 
 
+def _content_tokens(query: str) -> set[str]:
+    return set(tokenize(query)) - _STOP
+
+
 def _scores(query: str, docs: list[list[str]]) -> list[float]:
     """BM25 score of each tokenised doc against the query."""
-    q = set(tokenize(query)) - _STOP
+    q = _content_tokens(query)
     n = len(docs)
     avg = (sum(len(d) for d in docs) / n) or 1.0
     df = Counter(t for d in docs for t in set(d) if t in q)
@@ -81,6 +88,7 @@ def select_agents(
     k: Optional[int] = None,
     hot_n: Optional[int] = None,
     min_score: Optional[float] = None,
+    min_coverage: Optional[float] = None,
     include: Iterable[str] = (),
 ) -> tuple[list[AgentView], int, bool]:
     """Return (agents to show, number hidden, no_match).
@@ -91,6 +99,7 @@ def select_agents(
     k = K if k is None else k
     hot_n = HOT_N if hot_n is None else hot_n
     min_score = MIN_SCORE if min_score is None else min_score
+    min_coverage = MIN_COVERAGE if min_coverage is None else min_coverage
     if len(agent_names) <= k + hot_n:
         return [AgentView(n) for n in agent_names], 0, False
 
@@ -99,7 +108,10 @@ def select_agents(
     docs = [tokenize(n) * NAME_BOOST + tokenize(text) for n, (_, text, _) in zip(agent_names, info)]
     scores = _scores(query, docs)
     order = sorted(range(len(agent_names)), key=lambda i: -scores[i])
-    no_match = scores[order[0]] < min_score
+    q = _content_tokens(query)
+    covered = len(q & set(docs[order[0]])) / len(q) if q else 0.0
+    # Too few content words ("send it") means we cannot judge fit, so never claim "no match".
+    no_match = len(q) >= MIN_CONTENT_TOKENS and (scores[order[0]] < min_score or covered < min_coverage)
 
     picked: list[int] = [] if no_match else [i for i in order[:k] if scores[i] > 0]
     hot = sorted(range(len(agent_names)), key=lambda i: -info[i][2])[:hot_n]
@@ -109,3 +121,14 @@ def select_agents(
 
     shown = [AgentView(agent_names[i], info[i][0]) for i in picked]
     return shown, len(agent_names) - len(shown), no_match
+
+
+def find_agents(keywords: str, agent_names: list[str], limit: int = FIND_LIMIT) -> list[AgentView]:
+    """Second-chance lookup over the whole roster: best-effort BM25, no minimum score."""
+    if not agent_names:
+        return []
+    info = [_read_agent(n) for n in agent_names]
+    docs = [tokenize(n) * NAME_BOOST + tokenize(text) for n, (_, text, _) in zip(agent_names, info)]
+    scores = _scores(keywords, docs)
+    order = [i for i in sorted(range(len(agent_names)), key=lambda i: -scores[i]) if scores[i] > 0]
+    return [AgentView(agent_names[i], info[i][0]) for i in order[:limit]]

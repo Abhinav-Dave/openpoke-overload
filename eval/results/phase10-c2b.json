@@ -1,0 +1,89 @@
+{
+  "interaction_prompt": {
+    "10": {
+      "chars": 10961,
+      "approx_tokens": 2740,
+      "system_chars": 10424
+    },
+    "50": {
+      "chars": 11408,
+      "approx_tokens": 2852,
+      "system_chars": 10424
+    },
+    "100": {
+      "chars": 11418,
+      "approx_tokens": 2854,
+      "system_chars": 10424
+    },
+    "300": {
+      "chars": 11413,
+      "approx_tokens": 2853,
+      "system_chars": 10424
+    }
+  },
+  "execution_prompt": {
+    "5": {
+      "chars": 5719,
+      "approx_tokens": 1429,
+      "system_chars": 5686
+    },
+    "50": {
+      "chars": 11645,
+      "approx_tokens": 2911,
+      "system_chars": 11612
+    },
+    "200": {
+      "chars": 11666,
+      "approx_tokens": 2916,
+      "system_chars": 11633
+    }
+  },
+  "email_flood": {
+    "10": {
+      "classifier_calls": 10,
+      "interaction_runs": 1,
+      "total_model_calls": 11,
+      "wall_s": 0.67
+    },
+    "50": {
+      "classifier_calls": 50,
+      "interaction_runs": 1,
+      "total_model_calls": 51,
+      "wall_s": 3.18
+    }
+  },
+  "burst_triggers": {
+    "due_triggers": 20,
+    "peak_parallel_agents": 5,
+    "interaction_runs": 20,
+    "total_model_calls": 40,
+    "wall_s": 1.41
+  },
+  "burst_agents": {
+    "agents_requested": 8,
+    "peak_parallel_agents": 4,
+    "interaction_runs": 2,
+    "total_model_calls": 7,
+    "wall_s": 0.35
+  },
+  "burst_chat": {
+    "chat_messages": 5,
+    "peak_overlapping_interaction_runs": 1,
+    "interaction_runs": 5,
+    "wall_s": 0.55
+  },
+  "meta": {
+    "label": "phase10-c2b",
+    "python": "3.11.8",
+    "git_head": "0c6ff8cfe82f2b5488d2b20902e048af5b0902f3",
+    "src": "C:\\Users\\abhin\\Downloads\\openpoke",
+    "timestamp": "2026-10-26T20:46:17",
+    "seams_patched": {
+      "request_chat_completion": 5,
+      "execute_gmail_tool": 7,
+      "get_active_gmail_user_id": 7
+    },
+    "fake_latency_s": 0.05,
+    "exec_sleep_s": 0.2
+  }
+}
