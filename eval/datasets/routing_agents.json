@@ -1,0 +1,1225 @@
+{
+ "synthetic": true,
+ "note": "Made-up agents for offline routing evaluation. No real user data.",
+ "near_duplicate_groups": [
+  "invoice-followups",
+  "flight-booking",
+  "hotel-booking",
+  "conference-travel",
+  "meeting-reschedule",
+  "newsletter-digest",
+  "receipts",
+  "recruiting-candidate",
+  "gym-booking",
+  "appointment",
+  "school-emails",
+  "tax-docs",
+  "track-package",
+  "cancel-subscription",
+  "birthday-planning",
+  "rent-reminder",
+  "utility-bills"
+ ],
+ "agents": [
+  {
+   "name": "invoice-followups-acme",
+   "requests": [
+    "Check whether Acme Corp has paid invoice 1042 and send a polite reminder if it is overdue.",
+    "Draft a second reminder to Acme Corp accounts payable about the unpaid invoice.",
+    "Find the PO number Acme Corp quoted in their last email."
+   ]
+  },
+  {
+   "name": "invoice-followups-globex",
+   "requests": [
+    "Check whether Globex has paid invoice 1187 and send a polite reminder if it is overdue.",
+    "Draft a second reminder to Globex accounts payable about the unpaid invoice.",
+    "Find the PO number Globex quoted in their last email."
+   ]
+  },
+  {
+   "name": "invoice-followups-initech",
+   "requests": [
+    "Check whether Initech has paid invoice 1203 and send a polite reminder if it is overdue.",
+    "Draft a second reminder to Initech accounts payable about the unpaid invoice.",
+    "Find the PO number Initech quoted in their last email."
+   ]
+  },
+  {
+   "name": "invoice-followups-umbrella",
+   "requests": [
+    "Check whether Umbrella Ltd has paid invoice 1250 and send a polite reminder if it is overdue.",
+    "Draft a second reminder to Umbrella Ltd accounts payable about the unpaid invoice.",
+    "Find the PO number Umbrella Ltd quoted in their last email."
+   ]
+  },
+  {
+   "name": "flight-booking-lisbon",
+   "requests": [
+    "Find and book the cheapest flight to Lisbon for the June design summit.",
+    "Check whether the Lisbon flight has a window seat left.",
+    "Email me the Lisbon boarding pass the day before departure."
+   ]
+  },
+  {
+   "name": "flight-booking-tokyo",
+   "requests": [
+    "Find and book the cheapest flight to Tokyo for the October client visit.",
+    "Check whether the Tokyo flight has a window seat left.",
+    "Email me the Tokyo boarding pass the day before departure."
+   ]
+  },
+  {
+   "name": "flight-booking-chicago",
+   "requests": [
+    "Find and book the cheapest flight to Chicago for the March sales kickoff.",
+    "Check whether the Chicago flight has a window seat left.",
+    "Email me the Chicago boarding pass the day before departure."
+   ]
+  },
+  {
+   "name": "hotel-booking-paris",
+   "requests": [
+    "Compare hotels in Paris near the Louvre and hold the best refundable room.",
+    "Ask the Paris hotel about late check-out.",
+    "Send me the Paris hotel confirmation number."
+   ]
+  },
+  {
+   "name": "hotel-booking-berlin",
+   "requests": [
+    "Compare hotels in Berlin near Alexanderplatz and hold the best refundable room.",
+    "Ask the Berlin hotel about late check-out.",
+    "Send me the Berlin hotel confirmation number."
+   ]
+  },
+  {
+   "name": "hotel-booking-austin",
+   "requests": [
+    "Compare hotels in Austin near the convention center and hold the best refundable room.",
+    "Ask the Austin hotel about late check-out.",
+    "Send me the Austin hotel confirmation number."
+   ]
+  },
+  {
+   "name": "conference-travel-neurips",
+   "requests": [
+    "Plan the trip to NeurIPS: registration, talk slot and expense approval.",
+    "Check the NeurIPS schedule for my talk time.",
+    "Draft the expense approval request for NeurIPS."
+   ]
+  },
+  {
+   "name": "conference-travel-pycon",
+   "requests": [
+    "Plan the trip to PyCon: registration, talk slot and expense approval.",
+    "Check the PyCon schedule for my talk time.",
+    "Draft the expense approval request for PyCon."
+   ]
+  },
+  {
+   "name": "meeting-reschedule-design-team",
+   "requests": [
+    "Move recurring meetings with the design team to a time that works and tell the attendees.",
+    "Propose three new slots to the design team for next week.",
+    "Check which design team members declined the invite."
+   ]
+  },
+  {
+   "name": "meeting-reschedule-board",
+   "requests": [
+    "Move recurring meetings with the board of directors to a time that works and tell the attendees.",
+    "Propose three new slots to the board of directors for next week.",
+    "Check which board of directors members declined the invite."
+   ]
+  },
+  {
+   "name": "newsletter-digest-substack",
+   "requests": [
+    "Summarise the Substack newsletters I get into one short weekly digest.",
+    "Skip Substack posts about crypto in the digest.",
+    "List the top three Substack articles from this week."
+   ]
+  },
+  {
+   "name": "newsletter-digest-medium",
+   "requests": [
+    "Summarise the Medium newsletters I get into one short weekly digest.",
+    "Skip Medium posts about crypto in the digest.",
+    "List the top three Medium articles from this week."
+   ]
+  },
+  {
+   "name": "receipts-uber",
+   "requests": [
+    "Collect my Uber receipts every month and file them in the expenses folder.",
+    "Find the Uber receipt from last Tuesday.",
+    "Total my Uber spending for the quarter."
+   ]
+  },
+  {
+   "name": "receipts-doordash",
+   "requests": [
+    "Collect my DoorDash receipts every month and file them in the expenses folder.",
+    "Find the DoorDash receipt from last Tuesday.",
+    "Total my DoorDash spending for the quarter."
+   ]
+  },
+  {
+   "name": "receipts-apple",
+   "requests": [
+    "Collect my Apple receipts every month and file them in the expenses folder.",
+    "Find the Apple receipt from last Tuesday.",
+    "Total my Apple spending for the quarter."
+   ]
+  },
+  {
+   "name": "recruiting-candidate-priya",
+   "requests": [
+    "Coordinate the hiring process for candidate Priya Nair: scheduling, feedback and next steps.",
+    "Remind interviewers to submit feedback on Priya Nair.",
+    "Draft a rejection or advance note for Priya Nair once feedback is in."
+   ]
+  },
+  {
+   "name": "recruiting-candidate-marcus",
+   "requests": [
+    "Coordinate the hiring process for candidate Marcus Webb: scheduling, feedback and next steps.",
+    "Remind interviewers to submit feedback on Marcus Webb.",
+    "Draft a rejection or advance note for Marcus Webb once feedback is in."
+   ]
+  },
+  {
+   "name": "recruiting-candidate-elena",
+   "requests": [
+    "Coordinate the hiring process for candidate Elena Petrova: scheduling, feedback and next steps.",
+    "Remind interviewers to submit feedback on Elena Petrova.",
+    "Draft a rejection or advance note for Elena Petrova once feedback is in."
+   ]
+  },
+  {
+   "name": "gym-booking-yoga",
+   "requests": [
+    "Book my yoga class at the gym each week and warn me if it is full.",
+    "Cancel the yoga class if I have a conflict.",
+    "Find the next open yoga slot on the weekend."
+   ]
+  },
+  {
+   "name": "gym-booking-climbing",
+   "requests": [
+    "Book my climbing wall class at the gym each week and warn me if it is full.",
+    "Cancel the climbing wall class if I have a conflict.",
+    "Find the next open climbing wall slot on the weekend."
+   ]
+  },
+  {
+   "name": "appointment-dentist",
+   "requests": [
+    "Schedule and remind me about dentist appointments.",
+    "Reschedule the dentist visit to a morning slot.",
+    "Ask the dentist office what to bring to the visit."
+   ]
+  },
+  {
+   "name": "appointment-dermatologist",
+   "requests": [
+    "Schedule and remind me about dermatologist appointments.",
+    "Reschedule the dermatologist visit to a morning slot.",
+    "Ask the dermatologist office what to bring to the visit."
+   ]
+  },
+  {
+   "name": "appointment-pediatrician",
+   "requests": [
+    "Schedule and remind me about pediatrician appointments.",
+    "Reschedule the pediatrician visit to a morning slot.",
+    "Ask the pediatrician office what to bring to the visit."
+   ]
+  },
+  {
+   "name": "school-emails-maya",
+   "requests": [
+    "Read the school emails about Maya and tell me what needs action.",
+    "Add Maya's school events to the calendar.",
+    "Reply to Maya's teacher about the missing form."
+   ]
+  },
+  {
+   "name": "school-emails-leo",
+   "requests": [
+    "Read the school emails about Leo and tell me what needs action.",
+    "Add Leo's school events to the calendar.",
+    "Reply to Leo's teacher about the missing form."
+   ]
+  },
+  {
+   "name": "tax-docs-federal",
+   "requests": [
+    "Gather the documents needed for my federal tax filing and list what is missing.",
+    "Ask the accountant if the federal deadline has an extension.",
+    "Check the inbox for new federal tax forms."
+   ]
+  },
+  {
+   "name": "tax-docs-state",
+   "requests": [
+    "Gather the documents needed for my state tax filing and list what is missing.",
+    "Ask the accountant if the state deadline has an extension.",
+    "Check the inbox for new state tax forms."
+   ]
+  },
+  {
+   "name": "track-package-amazon",
+   "requests": [
+    "Track my Amazon order and tell me when it is out for delivery.",
+    "Check the Amazon delivery status today.",
+    "Contact Amazon support if the order is late."
+   ]
+  },
+  {
+   "name": "track-package-ikea",
+   "requests": [
+    "Track my IKEA order and tell me when it is out for delivery.",
+    "Check the IKEA delivery status today.",
+    "Contact IKEA support if the order is late."
+   ]
+  },
+  {
+   "name": "track-package-etsy",
+   "requests": [
+    "Track my Etsy order and tell me when it is out for delivery.",
+    "Check the Etsy delivery status today.",
+    "Contact Etsy support if the order is late."
+   ]
+  },
+  {
+   "name": "cancel-subscription-netflix",
+   "requests": [
+    "Cancel my Netflix subscription before the next billing date and confirm by email.",
+    "Check the date of the next Netflix charge.",
+    "Find the Netflix cancellation confirmation."
+   ]
+  },
+  {
+   "name": "cancel-subscription-spotify",
+   "requests": [
+    "Cancel my Spotify subscription before the next billing date and confirm by email.",
+    "Check the date of the next Spotify charge.",
+    "Find the Spotify cancellation confirmation."
+   ]
+  },
+  {
+   "name": "cancel-subscription-hulu",
+   "requests": [
+    "Cancel my Hulu subscription before the next billing date and confirm by email.",
+    "Check the date of the next Hulu charge.",
+    "Find the Hulu cancellation confirmation."
+   ]
+  },
+  {
+   "name": "birthday-planning-mom",
+   "requests": [
+    "Plan Mom's birthday: gift, dinner reservation and a card.",
+    "Remind me two weeks before Mom's birthday.",
+    "Book the restaurant for Mom's birthday dinner."
+   ]
+  },
+  {
+   "name": "birthday-planning-dad",
+   "requests": [
+    "Plan Dad's birthday: gift, dinner reservation and a card.",
+    "Remind me two weeks before Dad's birthday.",
+    "Book the restaurant for Dad's birthday dinner."
+   ]
+  },
+  {
+   "name": "birthday-planning-sister",
+   "requests": [
+    "Plan my sister's birthday: gift, dinner reservation and a card.",
+    "Remind me two weeks before my sister's birthday.",
+    "Book the restaurant for my sister's birthday dinner."
+   ]
+  },
+  {
+   "name": "rent-reminder-apartment-12b",
+   "requests": [
+    "Send the apartment 12B rent reminder and confirm the payment arrived.",
+    "Check whether the apartment 12B rent payment went through.",
+    "Ask the landlord about the apartment 12B lease renewal."
+   ]
+  },
+  {
+   "name": "rent-reminder-storage-unit",
+   "requests": [
+    "Send the storage unit rent reminder and confirm the payment arrived.",
+    "Check whether the storage unit rent payment went through.",
+    "Ask the landlord about the storage unit lease renewal."
+   ]
+  },
+  {
+   "name": "utility-bills-electric",
+   "requests": [
+    "Watch for the electric bill each month and flag unusual amounts.",
+    "Compare this electric bill to last month.",
+    "Set up autopay for the electric bill."
+   ]
+  },
+  {
+   "name": "utility-bills-internet",
+   "requests": [
+    "Watch for the internet bill each month and flag unusual amounts.",
+    "Compare this internet bill to last month.",
+    "Set up autopay for the internet bill."
+   ]
+  },
+  {
+   "name": "utility-bills-water",
+   "requests": [
+    "Watch for the water bill each month and flag unusual amounts.",
+    "Compare this water bill to last month.",
+    "Set up autopay for the water bill."
+   ]
+  },
+  {
+   "name": "quarterly-invoice-summary",
+   "requests": [
+    "Summarise all invoices sent this quarter and what is still outstanding.",
+    "Group the outstanding invoices by age.",
+    "Email the summary to my business partner."
+   ]
+  },
+  {
+   "name": "late-fee-policy-draft",
+   "requests": [
+    "Draft a clear late payment fee policy for my freelance contracts.",
+    "Shorten the policy to one paragraph.",
+    "Add a grace period of ten days."
+   ]
+  },
+  {
+   "name": "expense-report-submission",
+   "requests": [
+    "Compile this month's work expenses into a report for finance.",
+    "Attach the missing meal receipts to the report.",
+    "Resubmit the report with the corrected totals."
+   ]
+  },
+  {
+   "name": "client-contract-renewals",
+   "requests": [
+    "Track which client contracts expire soon and prepare renewal notes.",
+    "List contracts ending in the next 60 days.",
+    "Draft a renewal email with a 5 percent price increase."
+   ]
+  },
+  {
+   "name": "payment-reconciliation-stripe",
+   "requests": [
+    "Match Stripe payouts to the bank deposits and list mismatches.",
+    "Explain the gap in last week's payout.",
+    "Export the reconciled rows to a spreadsheet."
+   ]
+  },
+  {
+   "name": "freelance-rate-quotes",
+   "requests": [
+    "Write quotes for new freelance projects based on my hourly rate.",
+    "Revise the quote for the logo project upward.",
+    "Add a deposit clause to the quote."
+   ]
+  },
+  {
+   "name": "vendor-onboarding-forms",
+   "requests": [
+    "Collect tax and bank forms from new vendors before the first payment.",
+    "Chase the vendors who have not returned the forms.",
+    "Store the completed forms in the vendor folder."
+   ]
+  },
+  {
+   "name": "purchase-order-approvals",
+   "requests": [
+    "Route purchase orders to the right manager and track approvals.",
+    "Remind the approver about the pending order.",
+    "Show which orders are still unapproved."
+   ]
+  },
+  {
+   "name": "airport-lounge-passes",
+   "requests": [
+    "Find which credit cards give lounge access and keep passes organised.",
+    "Check the lounge hours at my layover airport.",
+    "Save the pass barcode to my phone wallet."
+   ]
+  },
+  {
+   "name": "rental-car-quotes",
+   "requests": [
+    "Compare rental car prices for my trips and book the best one.",
+    "Add a second driver to the quote.",
+    "Check the fuel policy before booking."
+   ]
+  },
+  {
+   "name": "passport-renewal",
+   "requests": [
+    "Handle my passport renewal paperwork and appointment.",
+    "Check the processing time for renewals.",
+    "Remind me to bring two photos."
+   ]
+  },
+  {
+   "name": "visa-appointment-india",
+   "requests": [
+    "Book the visa appointment for my India trip and list required documents.",
+    "Look for an earlier slot at the visa centre.",
+    "Confirm the invitation letter is valid."
+   ]
+  },
+  {
+   "name": "travel-insurance-claim",
+   "requests": [
+    "File the claim for my cancelled trip and follow up with the insurer.",
+    "Gather the cancellation proof for the claim.",
+    "Ask the insurer when the payout arrives."
+   ]
+  },
+  {
+   "name": "packing-list-ski-trip",
+   "requests": [
+    "Build a packing list for the ski trip and check the weather.",
+    "Add thermal layers to the list.",
+    "Remind me to rent the helmet."
+   ]
+  },
+  {
+   "name": "train-tickets-eurostar",
+   "requests": [
+    "Book Eurostar train tickets between London and Brussels.",
+    "Look for a cheaper off-peak fare.",
+    "Change the departure to the afternoon train."
+   ]
+  },
+  {
+   "name": "airline-miles-tracker",
+   "requests": [
+    "Keep track of my frequent flyer miles and expiry dates.",
+    "Tell me which miles expire this year.",
+    "Find a redemption for a one-way ticket."
+   ]
+  },
+  {
+   "name": "find-free-slots-this-week",
+   "requests": [
+    "Look at my calendar and suggest free slots for a one hour meeting this week.",
+    "Exclude Friday afternoons.",
+    "Offer the top two options to the guest."
+   ]
+  },
+  {
+   "name": "conference-room-bookings",
+   "requests": [
+    "Reserve meeting rooms at the office for upcoming workshops.",
+    "Swap the room to one with a projector.",
+    "Release the room if the workshop is cancelled."
+   ]
+  },
+  {
+   "name": "focus-time-blocks",
+   "requests": [
+    "Protect two hours of deep work on my calendar each morning.",
+    "Move the focus block when a meeting lands on it.",
+    "Report how much focus time I got this week."
+   ]
+  },
+  {
+   "name": "oncall-schedule-swaps",
+   "requests": [
+    "Arrange on-call shift swaps with teammates.",
+    "Ask Dana to take my Thursday shift.",
+    "Update the rota after the swap."
+   ]
+  },
+  {
+   "name": "holiday-calendar-setup",
+   "requests": [
+    "Add public holidays and school breaks to my calendar.",
+    "Include the observed bank holidays for next year.",
+    "Colour the school breaks green."
+   ]
+  },
+  {
+   "name": "team-offsite-planning",
+   "requests": [
+    "Plan the quarterly team offsite: venue, agenda and catering.",
+    "Poll the team for preferred dates.",
+    "Get three venue quotes."
+   ]
+  },
+  {
+   "name": "timezone-meeting-planner",
+   "requests": [
+    "Find meeting times that suit colleagues in London, New York and Singapore.",
+    "Avoid anything before 8am for New York.",
+    "Send the agreed time in all three zones."
+   ]
+  },
+  {
+   "name": "calendar-invite-cleanup",
+   "requests": [
+    "Clean up old duplicate calendar invites and declined events.",
+    "Delete the cancelled project reviews.",
+    "Merge the two weekly syncs into one."
+   ]
+  },
+  {
+   "name": "unsubscribe-promotional-emails",
+   "requests": [
+    "Unsubscribe me from marketing emails and report what was removed.",
+    "Block the sender that keeps coming back.",
+    "List the senders that mailed me most this month."
+   ]
+  },
+  {
+   "name": "reading-list-links",
+   "requests": [
+    "Collect article links I save and sort them into a reading list.",
+    "Move the long reads to the weekend list.",
+    "Remove links older than a month."
+   ]
+  },
+  {
+   "name": "podcast-episode-summaries",
+   "requests": [
+    "Summarise new episodes of the podcasts I follow.",
+    "Skip the interview episodes.",
+    "Pull the key quotes from the latest episode."
+   ]
+  },
+  {
+   "name": "news-alert-filters",
+   "requests": [
+    "Filter news alerts down to topics I care about.",
+    "Mute the sports alerts.",
+    "Add a keyword alert for battery technology."
+   ]
+  },
+  {
+   "name": "github-notifications-triage",
+   "requests": [
+    "Triage my GitHub notifications and flag review requests.",
+    "Ignore bot comments.",
+    "List pull requests waiting on me."
+   ]
+  },
+  {
+   "name": "product-hunt-picks",
+   "requests": [
+    "Pick the most interesting new products from the daily launch list.",
+    "Skip anything about crypto.",
+    "Send me a top three on Mondays."
+   ]
+  },
+  {
+   "name": "arxiv-paper-alerts",
+   "requests": [
+    "Watch arXiv for new papers on retrieval and summarise the abstracts.",
+    "Add speech recognition as a topic.",
+    "Save the best paper to my library."
+   ]
+  },
+  {
+   "name": "warranty-receipts-electronics",
+   "requests": [
+    "Keep receipts and warranty terms for my electronics.",
+    "Find the laptop warranty expiry date.",
+    "Locate the receipt for the monitor."
+   ]
+  },
+  {
+   "name": "expense-category-tagging",
+   "requests": [
+    "Tag each expense with a budget category.",
+    "Recategorise the coffee shop charges.",
+    "Show the totals per category."
+   ]
+  },
+  {
+   "name": "mileage-log-reimbursement",
+   "requests": [
+    "Log business drives and prepare the mileage reimbursement.",
+    "Add the client visit on Tuesday.",
+    "Convert the miles to the reimbursement amount."
+   ]
+  },
+  {
+   "name": "restaurant-receipts-team-dinner",
+   "requests": [
+    "Split the team dinner bill and collect everyone's share.",
+    "Remind the people who have not paid.",
+    "Itemise the drinks for the finance report."
+   ]
+  },
+  {
+   "name": "medical-receipts-hsa",
+   "requests": [
+    "Collect medical receipts and submit them to my HSA.",
+    "Check what the HSA already reimbursed.",
+    "File the pharmacy receipts."
+   ]
+  },
+  {
+   "name": "amazon-return-labels",
+   "requests": [
+    "Start returns for Amazon items and fetch the printable label.",
+    "Pick the drop-off point nearest to me.",
+    "Confirm the refund was issued."
+   ]
+  },
+  {
+   "name": "job-posting-backend-engineer",
+   "requests": [
+    "Write and publish the job posting for the backend engineer role.",
+    "Add salary range to the posting.",
+    "Close the posting once 100 applications arrive."
+   ]
+  },
+  {
+   "name": "interview-panel-scheduling",
+   "requests": [
+    "Schedule interview panels so all five interviewers fit one day.",
+    "Replace the interviewer who is out sick.",
+    "Send the panel agenda to the candidate."
+   ]
+  },
+  {
+   "name": "offer-letter-drafts",
+   "requests": [
+    "Draft offer letters from the approved compensation sheet.",
+    "Update the start date in the letter.",
+    "Send the signed letter to payroll."
+   ]
+  },
+  {
+   "name": "referral-bonus-tracking",
+   "requests": [
+    "Track employee referrals and the bonuses they earned.",
+    "List referrals that passed the 90 day mark.",
+    "Notify HR which bonuses are due."
+   ]
+  },
+  {
+   "name": "resume-screening-queue",
+   "requests": [
+    "Screen incoming resumes against the must-have skills list.",
+    "Move the borderline resumes to maybe.",
+    "Report how many applicants passed."
+   ]
+  },
+  {
+   "name": "onboarding-checklist-new-hires",
+   "requests": [
+    "Prepare the first-week checklist and equipment for new hires.",
+    "Order a laptop for the new designer.",
+    "Schedule the welcome lunch."
+   ]
+  },
+  {
+   "name": "linkedin-outreach-templates",
+   "requests": [
+    "Write outreach messages for passive candidates.",
+    "Make the tone less formal.",
+    "Create a follow-up for non-responders."
+   ]
+  },
+  {
+   "name": "meal-prep-grocery-list",
+   "requests": [
+    "Plan weekly meals and create the grocery list.",
+    "Make the plan vegetarian.",
+    "Remove the dairy items from the list."
+   ]
+  },
+  {
+   "name": "running-training-plan",
+   "requests": [
+    "Maintain my half marathon training plan and adjust it after runs.",
+    "Shift the long run to Sunday.",
+    "Add a recovery week."
+   ]
+  },
+  {
+   "name": "pharmacy-refill-reminders",
+   "requests": [
+    "Remind me to refill prescriptions before they run out.",
+    "Check how many refills remain.",
+    "Ask the pharmacy to deliver."
+   ]
+  },
+  {
+   "name": "therapy-session-scheduling",
+   "requests": [
+    "Schedule my weekly therapy sessions and keep them private.",
+    "Move this week's session to evening.",
+    "Send a reminder the morning of."
+   ]
+  },
+  {
+   "name": "vaccine-records",
+   "requests": [
+    "Keep my family's vaccine records and flag boosters that are due.",
+    "Find the tetanus booster date.",
+    "Export the record for travel."
+   ]
+  },
+  {
+   "name": "sleep-tracker-summary",
+   "requests": [
+    "Summarise my sleep data from the wearable each week.",
+    "Highlight nights under six hours.",
+    "Compare this week with last week."
+   ]
+  },
+  {
+   "name": "step-challenge-friends",
+   "requests": [
+    "Run a weekly step challenge among friends and post the leaderboard.",
+    "Add Sam to the challenge.",
+    "Announce the winner on Sunday."
+   ]
+  },
+  {
+   "name": "parent-teacher-conference-slots",
+   "requests": [
+    "Book parent-teacher conference slots for both kids back to back.",
+    "Switch to the Wednesday evening block.",
+    "Prepare questions for the maths teacher."
+   ]
+  },
+  {
+   "name": "school-field-trip-forms",
+   "requests": [
+    "Fill in field trip permission forms and note payment deadlines.",
+    "Pay the museum trip fee.",
+    "Scan the signed form."
+   ]
+  },
+  {
+   "name": "tutoring-math-sessions",
+   "requests": [
+    "Arrange maths tutoring sessions and share progress notes.",
+    "Ask the tutor for Saturday availability.",
+    "Summarise last session's homework."
+   ]
+  },
+  {
+   "name": "college-application-deadlines",
+   "requests": [
+    "Track college application deadlines and required essays.",
+    "List essays still unwritten.",
+    "Remind me a week before each deadline."
+   ]
+  },
+  {
+   "name": "school-lunch-menu-account",
+   "requests": [
+    "Top up the school lunch account and read the weekly menu.",
+    "Check the balance on the lunch card.",
+    "Flag days with nut ingredients."
+   ]
+  },
+  {
+   "name": "soccer-practice-carpool",
+   "requests": [
+    "Organise the soccer practice carpool rota with other parents.",
+    "Find a driver for Thursday.",
+    "Share the updated rota."
+   ]
+  },
+  {
+   "name": "summer-camp-registration",
+   "requests": [
+    "Research and register for summer camps.",
+    "Compare the two sailing camps.",
+    "Pay the deposit before the early bird ends."
+   ]
+  },
+  {
+   "name": "quarterly-estimated-taxes",
+   "requests": [
+    "Calculate and remind me of quarterly estimated tax payments.",
+    "Recompute with this quarter's income.",
+    "Schedule the payment."
+   ]
+  },
+  {
+   "name": "charity-donation-receipts",
+   "requests": [
+    "Collect donation receipts for tax deduction.",
+    "List donations over 250 dollars.",
+    "Request a letter from the food bank."
+   ]
+  },
+  {
+   "name": "w2-1099-collection",
+   "requests": [
+    "Collect W-2 and 1099 forms from employers and clients.",
+    "Chase the client who has not sent the 1099.",
+    "Mark the received forms."
+   ]
+  },
+  {
+   "name": "accountant-meeting-prep",
+   "requests": [
+    "Prepare a summary of my finances for the accountant meeting.",
+    "Add the home office deductions.",
+    "Book the meeting for next Tuesday."
+   ]
+  },
+  {
+   "name": "property-tax-appeal",
+   "requests": [
+    "Prepare the property tax appeal with comparable sales.",
+    "Find the appeal filing deadline.",
+    "Draft the cover letter."
+   ]
+  },
+  {
+   "name": "crypto-gains-report",
+   "requests": [
+    "Compile crypto trades into a capital gains report.",
+    "Include the exchange CSV from March.",
+    "Estimate the tax owed."
+   ]
+  },
+  {
+   "name": "customs-duty-notices",
+   "requests": [
+    "Watch for customs duty notices on imported parcels and pay them.",
+    "Dispute the duty on the camera lens.",
+    "Find the tariff code."
+   ]
+  },
+  {
+   "name": "furniture-delivery-window",
+   "requests": [
+    "Coordinate furniture delivery windows and be home to receive them.",
+    "Ask for a morning window.",
+    "Reschedule if the sofa is delayed."
+   ]
+  },
+  {
+   "name": "return-shipping-labels-zara",
+   "requests": [
+    "Return clothing to Zara and arrange the courier pickup.",
+    "Print the Zara return slip.",
+    "Check when the refund posts."
+   ]
+  },
+  {
+   "name": "pickup-point-notifications",
+   "requests": [
+    "Alert me when parcels arrive at the pickup locker.",
+    "Extend the locker holding time.",
+    "List parcels waiting for collection."
+   ]
+  },
+  {
+   "name": "international-parcel-japan",
+   "requests": [
+    "Follow the parcel being shipped to me from Japan.",
+    "Ask the sender for the EMS number.",
+    "Check where it is stuck."
+   ]
+  },
+  {
+   "name": "moving-company-quotes",
+   "requests": [
+    "Get quotes from moving companies and compare them.",
+    "Ask about packing services.",
+    "Book the cheapest insured mover."
+   ]
+  },
+  {
+   "name": "annual-renewal-audit",
+   "requests": [
+    "Audit all yearly renewals and highlight the ones I should drop.",
+    "List renewals coming up in January.",
+    "Calculate the yearly total."
+   ]
+  },
+  {
+   "name": "software-license-renewals",
+   "requests": [
+    "Track software licence renewals for the team.",
+    "Renew the design tool seats.",
+    "Remove seats of people who left."
+   ]
+  },
+  {
+   "name": "domain-name-renewals",
+   "requests": [
+    "Keep domain names renewed and warn me before expiry.",
+    "Turn on auto-renew for the main domain.",
+    "Transfer the old domain."
+   ]
+  },
+  {
+   "name": "cloud-bill-alerts",
+   "requests": [
+    "Monitor the cloud bill and warn me about spikes.",
+    "Explain the jump in storage cost.",
+    "Set a budget alert at 200 dollars."
+   ]
+  },
+  {
+   "name": "newspaper-subscription-pause",
+   "requests": [
+    "Pause my newspaper subscription while I am away.",
+    "Resume delivery on the 20th.",
+    "Confirm the pause with the circulation desk."
+   ]
+  },
+  {
+   "name": "free-trial-end-dates",
+   "requests": [
+    "Track free trial end dates so I do not get charged.",
+    "Cancel the trial that ends tomorrow.",
+    "List trials running now."
+   ]
+  },
+  {
+   "name": "family-plan-sharing",
+   "requests": [
+    "Manage who is on our family plans and split the costs.",
+    "Add my cousin to the music plan.",
+    "Calculate each person's share."
+   ]
+  },
+  {
+   "name": "wedding-rsvp-tracking",
+   "requests": [
+    "Track RSVPs for our wedding and update the guest count.",
+    "List guests who have not answered.",
+    "Send a reminder with the meal choices."
+   ]
+  },
+  {
+   "name": "holiday-gift-ideas",
+   "requests": [
+    "Brainstorm gifts for family members and track purchases.",
+    "Find a gift for a coffee lover under 50 dollars.",
+    "Mark the scarf as bought."
+   ]
+  },
+  {
+   "name": "pet-vet-appointments",
+   "requests": [
+    "Book vet appointments for the dog and track vaccinations.",
+    "Ask the vet about flea treatment.",
+    "Reschedule the checkup after the trip."
+   ]
+  },
+  {
+   "name": "home-repair-plumber-quotes",
+   "requests": [
+    "Get plumber quotes for the leaking kitchen sink.",
+    "Compare the two quotes.",
+    "Book the plumber for Friday."
+   ]
+  },
+  {
+   "name": "babysitter-scheduling",
+   "requests": [
+    "Find and schedule babysitters for date nights.",
+    "Ask Emma if she is free Saturday.",
+    "Pay the sitter after the evening."
+   ]
+  },
+  {
+   "name": "grandparents-video-calls",
+   "requests": [
+    "Schedule weekly video calls with the grandparents.",
+    "Send them the call link.",
+    "Move this week's call to Sunday."
+   ]
+  },
+  {
+   "name": "garden-sprinkler-service",
+   "requests": [
+    "Arrange the sprinkler system service and seasonal shutdown.",
+    "Book the spring start-up.",
+    "Ask what the service costs."
+   ]
+  },
+  {
+   "name": "customer-support-escalations",
+   "requests": [
+    "Watch support tickets that need escalation and notify the lead.",
+    "List tickets older than three days.",
+    "Summarise the angry customer thread."
+   ]
+  },
+  {
+   "name": "bug-report-triage",
+   "requests": [
+    "Triage incoming bug reports and assign severity.",
+    "Mark the login crash as critical.",
+    "Close duplicates of the export bug."
+   ]
+  },
+  {
+   "name": "press-inquiries",
+   "requests": [
+    "Handle press inquiries and prepare short answers.",
+    "Draft a reply to the tech reporter.",
+    "Log which outlets contacted us."
+   ]
+  },
+  {
+   "name": "board-deck-reviews",
+   "requests": [
+    "Collect feedback on the board deck before the meeting.",
+    "Merge comments from the CFO.",
+    "Export the final deck as PDF."
+   ]
+  },
+  {
+   "name": "security-alert-triage",
+   "requests": [
+    "Review security alerts and flag the suspicious ones.",
+    "Check the login from a new country.",
+    "Reset the password for the flagged account."
+   ]
+  },
+  {
+   "name": "vendor-security-questionnaires",
+   "requests": [
+    "Fill in security questionnaires sent by customers.",
+    "Reuse answers from the last questionnaire.",
+    "Ask legal about the data retention answer."
+   ]
+  },
+  {
+   "name": "sales-lead-followups",
+   "requests": [
+    "Follow up with new sales leads within a day.",
+    "Draft a note to the lead from the webinar.",
+    "Mark stale leads as cold."
+   ]
+  },
+  {
+   "name": "podcast-guest-booking",
+   "requests": [
+    "Book guests for my podcast and schedule recordings.",
+    "Pitch the founder on an episode.",
+    "Send the recording instructions."
+   ]
+  },
+  {
+   "name": "event-sponsor-outreach",
+   "requests": [
+    "Reach out to potential sponsors for our meetup.",
+    "Follow up with sponsors who opened the mail.",
+    "Track pledged amounts."
+   ]
+  },
+  {
+   "name": "legal-contract-redlines",
+   "requests": [
+    "Compare contract versions and list the redlined changes.",
+    "Highlight the liability clause changes.",
+    "Send the redline to counsel."
+   ]
+  },
+  {
+   "name": "investor-update-emails",
+   "requests": [
+    "Write the monthly investor update from our metrics.",
+    "Add the new hire announcement.",
+    "Send the draft to the cofounder first."
+   ]
+  },
+  {
+   "name": "team-birthdays-slack",
+   "requests": [
+    "Post team birthday reminders and collect card signatures.",
+    "Order a cake for Friday.",
+    "Collect messages for the card."
+   ]
+  },
+  {
+   "name": "office-supplies-orders",
+   "requests": [
+    "Reorder office supplies when stock runs low.",
+    "Add printer toner to the order.",
+    "Compare prices from two suppliers."
+   ]
+  },
+  {
+   "name": "parking-permit-renewal",
+   "requests": [
+    "Renew the residential parking permit and keep proof.",
+    "Upload the proof of address.",
+    "Check when the permit expires."
+   ]
+  },
+  {
+   "name": "car-maintenance-schedule",
+   "requests": [
+    "Track car service dates and book maintenance.",
+    "Book the oil change.",
+    "Find the tyre rotation history."
+   ]
+  },
+  {
+   "name": "car-insurance-quotes",
+   "requests": [
+    "Compare car insurance quotes at renewal time.",
+    "Ask for a discount for the clean record.",
+    "Switch to the cheaper policy."
+   ]
+  },
+  {
+   "name": "home-insurance-claim",
+   "requests": [
+    "Handle the home insurance claim for the storm damage.",
+    "Send photos of the roof to the adjuster.",
+    "Ask when the inspection is."
+   ]
+  },
+  {
+   "name": "bank-fraud-alerts",
+   "requests": [
+    "Review bank fraud alerts and confirm or dispute charges.",
+    "Dispute the unknown charge from last night.",
+    "Freeze the card temporarily."
+   ]
+  },
+  {
+   "name": "credit-card-rewards",
+   "requests": [
+    "Track credit card rewards and suggest the best card per purchase.",
+    "Redeem points for a statement credit.",
+    "Compare the annual fees."
+   ]
+  },
+  {
+   "name": "mortgage-refinance-rates",
+   "requests": [
+    "Watch mortgage rates and tell me when refinancing makes sense.",
+    "Calculate the break-even point.",
+    "Request a rate quote from the lender."
+   ]
+  },
+  {
+   "name": "library-book-holds",
+   "requests": [
+    "Manage library holds and renewals.",
+    "Renew the books due Friday.",
+    "Place a hold on the new thriller."
+   ]
+  }
+ ]
+}

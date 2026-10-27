@@ -1,0 +1,822 @@
+{
+ "synthetic": true,
+ "note": "Hand-written labelled queries. Split fixed by position before any scoring: 2 of every 5 per category are dev.",
+ "queries": [
+  {
+   "text": "How is my passport renewal going?",
+   "expected": "passport-renewal",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Get me rental car prices for next weekend",
+   "expected": "rental-car-quotes",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Ask the tutor about maths sessions on Saturday",
+   "expected": "tutoring-math-sessions",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Make a grocery list for this week's meal plan",
+   "expected": "meal-prep-grocery-list",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Triage the new bug reports from today",
+   "expected": "bug-report-triage",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Which domain names are about to expire?",
+   "expected": "domain-name-renewals",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Build the capital gains report from my crypto trades",
+   "expected": "crypto-gains-report",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Do I need a prescription refill?",
+   "expected": "pharmacy-refill-reminders",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Any update on the travel insurance claim?",
+   "expected": "travel-insurance-claim",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Draft the offer letter for the new hire",
+   "expected": "offer-letter-drafts",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Renew my parking permit",
+   "expected": "parking-permit-renewal",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Renew my library books",
+   "expected": "library-book-holds",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Did the cloud bill spike this week?",
+   "expected": "cloud-bill-alerts",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Compare the moving company quotes",
+   "expected": "moving-company-quotes",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Register the kids for summer camp",
+   "expected": "summer-camp-registration",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "What are mortgage refinance rates today?",
+   "expected": "mortgage-refinance-rates",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Add the public holidays to my calendar",
+   "expected": "holiday-calendar-setup",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Summarise the new podcast episodes",
+   "expected": "podcast-episode-summaries",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "When is the next vaccine booster due?",
+   "expected": "vaccine-records",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "How many wedding RSVPs do we have?",
+   "expected": "wedding-rsvp-tracking",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Compare car insurance quotes",
+   "expected": "car-insurance-quotes",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Add this article to my reading list",
+   "expected": "reading-list-links",
+   "category": "direct",
+   "split": "dev"
+  },
+  {
+   "text": "Plan the team offsite agenda",
+   "expected": "team-offsite-planning",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "Any suspicious security alerts today?",
+   "expected": "security-alert-triage",
+   "category": "direct",
+   "split": "test"
+  },
+  {
+   "text": "My travel ID booklet is about to lapse, sort it out",
+   "expected": "passport-renewal",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "Our hosting costs shot up, why?",
+   "expected": "cloud-bill-alerts",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "Should I swap my home loan for a cheaper one?",
+   "expected": "mortgage-refinance-rates",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Get me the new Stephen King from the public lending shelf",
+   "expected": "library-book-holds",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Set up my weekly chat with my counsellor",
+   "expected": "therapy-session-scheduling",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Someone used my plastic for something I never bought",
+   "expected": "bank-fraud-alerts",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "How well did I rest this week?",
+   "expected": "sleep-tracker-summary",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "My puppy is limping and needs a doctor",
+   "expected": "pet-vet-appointments",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Find someone to watch the kids on Saturday night",
+   "expected": "babysitter-scheduling",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "When is the couch arriving?",
+   "expected": "furniture-delivery-window",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Send those jeans back to the clothing store",
+   "expected": "return-shipping-labels-zara",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "The permits for the programs we use at work need extending",
+   "expected": "software-license-renewals",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "Write the monthly note to the people who funded us",
+   "expected": "investor-update-emails",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "A journalist emailed asking for a comment",
+   "expected": "press-inquiries",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Get things ready for the person who starts Monday",
+   "expected": "onboarding-checklist-new-hires",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Plan my jogging schedule for the 21k race",
+   "expected": "running-training-plan",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "Gather proof of what I gave to good causes",
+   "expected": "charity-donation-receipts",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "Put money on the kids' cafeteria card",
+   "expected": "school-lunch-menu-account",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "What should I buy my uncle for Christmas?",
+   "expected": "holiday-gift-ideas",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Set up a regular screen chat with nana and grandpa",
+   "expected": "grandparents-video-calls",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Which plastic earns the most cashback at the supermarket?",
+   "expected": "credit-card-rewards",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "My automobile needs its regular servicing",
+   "expected": "car-maintenance-schedule",
+   "category": "paraphrase",
+   "split": "dev"
+  },
+  {
+   "text": "Prep me for the chat with my bookkeeper",
+   "expected": "accountant-meeting-prep",
+   "category": "paraphrase",
+   "split": "test"
+  },
+  {
+   "text": "Has Globex paid that invoice yet?",
+   "expected": "invoice-followups-globex",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Chase Initech about the overdue bill",
+   "expected": "invoice-followups-initech",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Remind Umbrella Ltd to pay their invoice",
+   "expected": "invoice-followups-umbrella",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Draft a reminder for Acme's unpaid invoice",
+   "expected": "invoice-followups-acme",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Book the Tokyo flight",
+   "expected": "flight-booking-tokyo",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Is there a window seat on the Chicago flight?",
+   "expected": "flight-booking-chicago",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Email me the Lisbon boarding pass",
+   "expected": "flight-booking-lisbon",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Can I get late check-out at the Berlin hotel?",
+   "expected": "hotel-booking-berlin",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Hold a room in Austin near the convention center",
+   "expected": "hotel-booking-austin",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Find a hotel in Paris near the Louvre",
+   "expected": "hotel-booking-paris",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Remind interviewers to give feedback on Marcus",
+   "expected": "recruiting-candidate-marcus",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "What are the next steps for Elena?",
+   "expected": "recruiting-candidate-elena",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Did Priya's interview go well?",
+   "expected": "recruiting-candidate-priya",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Any school emails about Leo?",
+   "expected": "school-emails-leo",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Reply to Maya's teacher about the form",
+   "expected": "school-emails-maya",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Where is my IKEA order?",
+   "expected": "track-package-ikea",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Is the Etsy package late?",
+   "expected": "track-package-etsy",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Cancel Hulu before it bills me",
+   "expected": "cancel-subscription-hulu",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "When does Spotify charge me next?",
+   "expected": "cancel-subscription-spotify",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Book the dinner for Dad's birthday",
+   "expected": "birthday-planning-dad",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Gift ideas for my sister's birthday",
+   "expected": "birthday-planning-sister",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Is the water bill higher than last month?",
+   "expected": "utility-bills-water",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Set up autopay for the internet bill",
+   "expected": "utility-bills-internet",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Reschedule the pediatrician visit",
+   "expected": "appointment-pediatrician",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Ask the dermatologist what to bring",
+   "expected": "appointment-dermatologist",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Which state tax forms are still missing?",
+   "expected": "tax-docs-state",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Plan the PyCon trip",
+   "expected": "conference-travel-pycon",
+   "category": "disambiguation",
+   "split": "dev"
+  },
+  {
+   "text": "Book the climbing wall this week",
+   "expected": "gym-booking-climbing",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Total my Uber spending this quarter",
+   "expected": "receipts-uber",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "Did the storage unit rent go through?",
+   "expected": "rent-reminder-storage-unit",
+   "category": "disambiguation",
+   "split": "test"
+  },
+  {
+   "text": "send it",
+   "expected": "invoice-followups-acme",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "invoice-followups-acme"
+  },
+  {
+   "text": "what about the other one",
+   "expected": "flight-booking-tokyo",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "flight-booking-tokyo"
+  },
+  {
+   "text": "do that again",
+   "expected": "school-emails-maya",
+   "category": "followup",
+   "split": "test",
+   "last_used": "school-emails-maya"
+  },
+  {
+   "text": "ok go ahead",
+   "expected": "track-package-etsy",
+   "category": "followup",
+   "split": "test",
+   "last_used": "track-package-etsy"
+  },
+  {
+   "text": "can you also CC my manager",
+   "expected": "recruiting-candidate-priya",
+   "category": "followup",
+   "split": "test",
+   "last_used": "recruiting-candidate-priya"
+  },
+  {
+   "text": "make it shorter",
+   "expected": "newsletter-digest-substack",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "newsletter-digest-substack"
+  },
+  {
+   "text": "try again",
+   "expected": "hotel-booking-paris",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "hotel-booking-paris"
+  },
+  {
+   "text": "yes please",
+   "expected": "bank-fraud-alerts",
+   "category": "followup",
+   "split": "test",
+   "last_used": "bank-fraud-alerts"
+  },
+  {
+   "text": "and the one from yesterday?",
+   "expected": "rent-reminder-apartment-12b",
+   "category": "followup",
+   "split": "test",
+   "last_used": "rent-reminder-apartment-12b"
+  },
+  {
+   "text": "remind me about that tomorrow",
+   "expected": "pet-vet-appointments",
+   "category": "followup",
+   "split": "test",
+   "last_used": "pet-vet-appointments"
+  },
+  {
+   "text": "change it to the afternoon",
+   "expected": "meeting-reschedule-board",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "meeting-reschedule-board"
+  },
+  {
+   "text": "any reply yet?",
+   "expected": "tax-docs-federal",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "tax-docs-federal"
+  },
+  {
+   "text": "cancel that",
+   "expected": "cancel-subscription-netflix",
+   "category": "followup",
+   "split": "test",
+   "last_used": "cancel-subscription-netflix"
+  },
+  {
+   "text": "add one more",
+   "expected": "expense-report-submission",
+   "category": "followup",
+   "split": "test",
+   "last_used": "expense-report-submission"
+  },
+  {
+   "text": "same but for next month",
+   "expected": "mortgage-refinance-rates",
+   "category": "followup",
+   "split": "test",
+   "last_used": "mortgage-refinance-rates"
+  },
+  {
+   "text": "thanks, now send it to them",
+   "expected": "offer-letter-drafts",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "offer-letter-drafts"
+  },
+  {
+   "text": "perfect, book it",
+   "expected": "train-tickets-eurostar",
+   "category": "followup",
+   "split": "dev",
+   "last_used": "train-tickets-eurostar"
+  },
+  {
+   "text": "what did they say?",
+   "expected": "press-inquiries",
+   "category": "followup",
+   "split": "test",
+   "last_used": "press-inquiries"
+  },
+  {
+   "text": "Help me plan a surprise proposal",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Translate this paragraph into Spanish",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Research electric bikes for commuting",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Find a good Thai restaurant near the office",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Write a eulogy for my grandfather",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Compare noise cancelling headphones",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Help me learn Italian in three months",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Find a used piano near me",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Plan a camping trip to Banff",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Organise my photo library by year",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Recommend a documentary about oceans",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Buy concert tickets for Saturday night",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Help me write a poem for my partner",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Look up the rules of cricket",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Find a co-working space downtown",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Set a budget for our kitchen renovation",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Start a schedule for my sourdough starter",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Find volunteer opportunities this month",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Help me pick a name for my startup",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Compare standing desks under 500 dollars",
+   "expected": null,
+   "category": "no_match",
+   "split": "test"
+  },
+  {
+   "text": "Order flowers for a funeral",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "Make a playlist for a long road drive",
+   "expected": null,
+   "category": "no_match",
+   "split": "dev"
+  },
+  {
+   "text": "hi",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  },
+  {
+   "text": "thanks!",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  },
+  {
+   "text": "how are you today?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "tell me a joke",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "what's the capital of Australia?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "good morning",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  },
+  {
+   "text": "who won the 2018 world cup?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  },
+  {
+   "text": "what is 15 percent of 240?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "you're awesome",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "what can you do?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "never mind",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  },
+  {
+   "text": "lol",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  },
+  {
+   "text": "explain what a black hole is",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "can you sing?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "ok bye",
+   "expected": null,
+   "category": "offtopic",
+   "split": "test"
+  },
+  {
+   "text": "what's the best way to learn to swim?",
+   "expected": null,
+   "category": "offtopic",
+   "split": "dev"
+  }
+ ]
+}
