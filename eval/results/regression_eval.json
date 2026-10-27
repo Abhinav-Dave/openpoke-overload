@@ -1,0 +1,417 @@
+{
+  "meta": {
+    "orig": "C:\\Users\\abhin\\Downloads\\openpoke\\session_context\\baseline_src",
+    "new": "C:\\Users\\abhin\\Downloads\\openpoke",
+    "seconds": 78.2,
+    "timestamp": "2026-10-26T20:22:24",
+    "fake_latency_s": 0.01
+  },
+  "regression": [
+    {
+      "id": 1,
+      "name": "small roster prompt identical",
+      "status": "PASS",
+      "reason": "3-agent interaction prompt byte-identical (269 chars, sha 524bdf38cc0a/524bdf38cc0a)"
+    },
+    {
+      "id": 2,
+      "name": "small log execution prompt identical",
+      "status": "PASS",
+      "reason": "5-entry execution system prompt byte-identical (timestamps normalised; 4185 chars, sha 093319e19236/093319e19236)"
+    },
+    {
+      "id": 3,
+      "name": "legacy data loads",
+      "status": "PASS",
+      "reason": "legacy roster list, agent logs, 2 triggers, seen ids, conversation all load identically"
+    },
+    {
+      "id": 4,
+      "name": "valid reminders accepted and fire",
+      "status": "PASS",
+      "reason": "daily 9am and hourly: accepted, fired [1, 1]x, rescheduled; same as original"
+    },
+    {
+      "id": 5,
+      "name": "single chat message: same tool calls and reply",
+      "status": "PASS",
+      "reason": "same 5 model calls, same tool sequence, same recorded replies"
+    },
+    {
+      "id": 6,
+      "name": "one important email still reaches user",
+      "status": "PASS",
+      "reason": "one important email: delivered once, identical text (sender + summary present), user reply recorded"
+    },
+    {
+      "id": 7,
+      "name": "1-4 agents per turn all start",
+      "status": "PASS",
+      "reason": "1..4 agents in one turn: all started, none rejected (same as original)"
+    }
+  ],
+  "intended_differences": [
+    {
+      "when": "default model name",
+      "what": "anthropic/claude-sonnet-4 -> anthropic/claude-haiku-5.5; the old model is no longer served; env overridable (OPENPOKE_MODEL)"
+    },
+    {
+      "when": "roster larger than 11 agents",
+      "what": "prompt shows top-K + recent agents instead of all (bounded view, the overload fix)"
+    },
+    {
+      "when": "execution log over 20 entries / 12000 chars",
+      "what": "only newest whole entries are injected, with a header noting omitted ones"
+    },
+    {
+      "when": "2 or more important emails in one poll",
+      "what": "one digest message instead of one interaction run each; single email keeps old format"
+    },
+    {
+      "when": "more than 4 agents in one turn / more than 5 at once",
+      "what": "extra starts rejected with a message; extra runs wait for a slot"
+    },
+    {
+      "when": "user chat while 10 are already waiting",
+      "what": "HTTP 429 with a plain message; chat runs one at a time"
+    },
+    {
+      "when": "recurrence faster than 5 minutes, or unparseable",
+      "what": "rejected when created"
+    },
+    {
+      "when": "model call fails with 429/5xx/timeout",
+      "what": "retried with backoff (3 attempts)"
+    },
+    {
+      "when": "tool loop hits the step limit",
+      "what": "user gets a plain failure reply instead of silence"
+    },
+    {
+      "when": "classifier error",
+      "what": "email is retried (up to 3 attempts) instead of marked seen"
+    }
+  ],
+  "gaps": {
+    "flood_10": {
+      "original": {
+        "model_calls": 30,
+        "classifier_calls": 10,
+        "interaction_runs": 10,
+        "user_visible": 10,
+        "emails_named_in_text": 10,
+        "wall_s": 0.2
+      },
+      "new": {
+        "model_calls": 12,
+        "classifier_calls": 10,
+        "interaction_runs": 1,
+        "user_visible": 1,
+        "emails_named_in_text": 10,
+        "wall_s": 0.17
+      }
+    },
+    "flood_50": {
+      "original": {
+        "model_calls": 150,
+        "classifier_calls": 50,
+        "interaction_runs": 50,
+        "user_visible": 50,
+        "emails_named_in_text": 50,
+        "wall_s": 1.12
+      },
+      "new": {
+        "model_calls": 52,
+        "classifier_calls": 50,
+        "interaction_runs": 1,
+        "user_visible": 1,
+        "emails_named_in_text": 20,
+        "wall_s": 0.8
+      }
+    },
+    "flood_200": {
+      "original": {
+        "model_calls": 603,
+        "classifier_calls": 200,
+        "interaction_runs": 200,
+        "user_visible": 200,
+        "emails_named_in_text": 200,
+        "wall_s": 6.06
+      },
+      "new": {
+        "model_calls": 202,
+        "classifier_calls": 200,
+        "interaction_runs": 1,
+        "user_visible": 1,
+        "emails_named_in_text": 20,
+        "wall_s": 3.74
+      }
+    },
+    "floor": {
+      "original": [
+        {
+          "rule": "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=WEEKLY;BYDAY=MO",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=HOURLY",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY;INTERVAL=15",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY;INTERVAL=5",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY;INTERVAL=2",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=SECONDLY;INTERVAL=30",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=SECONDLY",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0,10,20",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=HOURLY;BYMINUTE=0,1,2",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=SOMETIMES;BANANA",
+          "accepted": false,
+          "message": "ValueError: invalid 'FREQ': SOMETIMES"
+        }
+      ],
+      "new": [
+        {
+          "rule": "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=WEEKLY;BYDAY=MO",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=HOURLY",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY;INTERVAL=15",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY;INTERVAL=5",
+          "accepted": true,
+          "message": ""
+        },
+        {
+          "rule": "FREQ=MINUTELY;INTERVAL=2",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeats every 2 minutes. The shortest repeat allowed is 5 minutes."
+        },
+        {
+          "rule": "FREQ=MINUTELY",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeats every 1 minute. The shortest repeat allowed is 5 minutes."
+        },
+        {
+          "rule": "FREQ=SECONDLY;INTERVAL=30",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeats every 30 seconds. The shortest repeat allowed is 5 minutes."
+        },
+        {
+          "rule": "FREQ=SECONDLY",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeats every 1 second. The shortest repeat allowed is 5 minutes."
+        },
+        {
+          "rule": "FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0,10,20",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeats every 10 seconds. The shortest repeat allowed is 5 minutes."
+        },
+        {
+          "rule": "FREQ=HOURLY;BYMINUTE=0,1,2",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeats every 1 minute. The shortest repeat allowed is 5 minutes."
+        },
+        {
+          "rule": "FREQ=SOMETIMES;BANANA",
+          "accepted": false,
+          "message": "TriggerLimitError: That repeat rule could not be understood. Use a standard RRULE such as FREQ=DAILY."
+        }
+      ]
+    },
+    "burst_triggers": {
+      "original": {
+        "due": 20,
+        "peak_parallel_agents": 20,
+        "agents_run": 20,
+        "wall_s": 0.3
+      },
+      "new": {
+        "due": 20,
+        "peak_parallel_agents": 5,
+        "agents_run": 20,
+        "wall_s": 0.89
+      }
+    },
+    "burst_agents": {
+      "original": {
+        "requested": 8,
+        "agents_run": 8,
+        "peak_parallel_agents": 8
+      },
+      "new": {
+        "requested": 8,
+        "agents_run": 4,
+        "peak_parallel_agents": 4
+      }
+    },
+    "chat_5": {
+      "original": {
+        "messages": 5,
+        "accepted_202": 5,
+        "rejected_429": 0,
+        "peak_overlapping_runs": 5,
+        "runs": 5
+      },
+      "new": {
+        "messages": 5,
+        "accepted_202": 5,
+        "rejected_429": 0,
+        "peak_overlapping_runs": 1,
+        "runs": 5
+      }
+    },
+    "chat_20": {
+      "original": {
+        "messages": 20,
+        "accepted_202": 20,
+        "rejected_429": 0,
+        "peak_overlapping_runs": 20,
+        "runs": 20
+      },
+      "new": {
+        "messages": 20,
+        "accepted_202": 10,
+        "rejected_429": 10,
+        "peak_overlapping_runs": 1,
+        "runs": 10
+      }
+    },
+    "chat_fail": {
+      "original": {
+        "visible_replies": [],
+        "model_calls": 8
+      },
+      "new": {
+        "visible_replies": [
+          "I got stuck going in circles on that and could not finish. Please try again."
+        ],
+        "model_calls": 8
+      }
+    },
+    "classifier_fail": {
+      "original": {
+        "emails": 50,
+        "first_attempt_failures": 15,
+        "surfaced_after_4_polls": 35,
+        "lost_seen_but_never_surfaced": 15,
+        "still_unseen": 0
+      },
+      "new": {
+        "emails": 50,
+        "first_attempt_failures": 15,
+        "surfaced_after_4_polls": 50,
+        "lost_seen_but_never_surfaced": 0,
+        "still_unseen": 0
+      }
+    },
+    "retry": {
+      "original": {
+        "429_then_200": {
+          "attempts": 1,
+          "outcome": "OpenRouterError: OpenRouter request failed (429): x",
+          "usage": "not available"
+        },
+        "503_x3": {
+          "attempts": 1,
+          "outcome": "OpenRouterError: OpenRouter request failed (503): x",
+          "usage": "not available"
+        },
+        "401": {
+          "attempts": 1,
+          "outcome": "OpenRouterError: OpenRouter request failed (401): x",
+          "usage": "not available"
+        }
+      },
+      "new": {
+        "429_then_200": {
+          "attempts": 2,
+          "outcome": "ok",
+          "usage": {
+            "calls": 1,
+            "retries": 1,
+            "failed_calls": 0,
+            "prompt_tokens": 10,
+            "completion_tokens": 5
+          }
+        },
+        "503_x3": {
+          "attempts": 3,
+          "outcome": "OpenRouterError: OpenRouter request failed after 3 attempts (HTTP 503)",
+          "usage": {
+            "calls": 0,
+            "retries": 2,
+            "failed_calls": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0
+          }
+        },
+        "401": {
+          "attempts": 1,
+          "outcome": "OpenRouterError: OpenRouter request failed (401): x",
+          "usage": {
+            "calls": 0,
+            "retries": 0,
+            "failed_calls": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0
+          }
+        }
+      }
+    }
+  }
+}
