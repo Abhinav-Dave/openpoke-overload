@@ -127,6 +127,7 @@ _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 
 # Look up older agents by keywords; read-only and not counted against the per-turn agent cap
 def find_agents(keywords: str) -> ToolResult:
+    limits.mark_find_agents_called()
     roster = get_agent_roster()
     roster.load()
     found = roster_view.find_agents(str(keywords), roster.get_agents())
@@ -138,6 +139,26 @@ def find_agents(keywords: str) -> ToolResult:
 # Create or reuse execution agent and dispatch instructions asynchronously
 def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     """Send instructions to an execution agent."""
+    roster = get_agent_roster()
+    roster.load()
+    existing_agents = set(roster.get_agents())
+    # Big roster: a new name needs a find_agents call first (checked before the cap is used)
+    if (
+        len(existing_agents) > roster_view.BOUND_ABOVE
+        and agent_name not in existing_agents
+        and limits.find_agents_missing()
+    ):
+        return ToolResult(
+            success=False,
+            payload={
+                "error": (
+                    "Not created yet. Before creating a new agent, call find_agents with a few keywords "
+                    "(try synonyms) for this task. If one fits, send the work to it by its exact name; "
+                    "otherwise repeat this call to create the new agent."
+                )
+            },
+        )
+
     if not limits.try_start_agent(agent_name):
         return ToolResult(
             success=False,
@@ -149,9 +170,6 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
             },
         )
 
-    roster = get_agent_roster()
-    roster.load()
-    existing_agents = set(roster.get_agents())
     is_new = agent_name not in existing_agents
 
     if is_new:

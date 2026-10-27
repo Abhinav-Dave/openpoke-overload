@@ -42,19 +42,26 @@ def percentile(xs, p):
     return s[max(0, math.ceil(p / 100 * len(s)) - 1)]
 
 
-def classify(tool_calls, seeded, expected):
-    """tool_calls: [(tool_name, agent_name_or_None)] in order. The FIRST valid send_message_to_agent is the decision."""
-    agent_idx = [i for i, (t, n) in enumerate(tool_calls)
-                 if t == "send_message_to_agent" and isinstance(n, str) and n]
+def classify(tool_calls, seeded, expected, starts=None):
+    """tool_calls: [(tool_name, agent_name_or_None)] in order.
+    The decision is the first send_message_to_agent that was ACCEPTED. When `starts` (agents the stub really started)
+    is given it decides, so a call refused by the find-before-create gate is not scored as a created agent."""
     find_idx = [i for i, (t, _) in enumerate(tool_calls) if t == "find_agents"]
-    if not agent_idx:
-        outcome, agent = "no_agent_call", None
+    sends = [i for i, (t, n) in enumerate(tool_calls) if t == "send_message_to_agent" and isinstance(n, str) and n]
+    if starts is None:
+        agent = tool_calls[sends[0]][1] if sends else None
+        choice_idx = sends[0] if sends else None
     else:
-        agent = tool_calls[agent_idx[0]][1]
+        agent = starts[0] if starts else None
+        picked = [i for i in sends if tool_calls[i][1] == agent]
+        choice_idx = picked[-1] if picked else None
+    if agent is None:
+        outcome = "no_agent_call"
+    else:
         is_expected = expected and (agent == expected or re.fullmatch(re.escape(expected) + r"-\d+", agent))  # with_clones suffix
         outcome = "reused_expected" if is_expected else "reused_other" if agent in seeded else "created_new"
     return {"outcome": outcome, "agent": agent, "find_called": bool(find_idx),
-            "find_before_choice": bool(find_idx and agent_idx and find_idx[0] < agent_idx[0])}
+            "find_before_choice": bool(find_idx and choice_idx is not None and find_idx[0] < choice_idx)}
 
 
 def seed_followup_history(conversation_log, agent_name):
@@ -340,7 +347,7 @@ def worker_main(a):
         state.reset()
         roster_size = len(roster.get_agents())
         res = asyncio.run(_one(InteractionAgentRuntime, q["text"]))
-        c = classify(state.tool_calls, seeded, q["expected"])
+        c = classify(state.tool_calls, seeded, q["expected"], state.starts)
         error = None if res.success else scrub(res.error or "failed")[:120]
         if error and not state.tool_calls:
             c["outcome"] = "error"

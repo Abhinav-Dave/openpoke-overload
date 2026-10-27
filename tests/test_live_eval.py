@@ -264,3 +264,16 @@ def test_budget_stop_saves_partial(monkeypatch, tmp_path, capfd):
     assert data["stopped_early"] is True
     assert 1 <= len(data["rows"]) < 12
     assert "STOPPED" in cap.out and SECRET not in cap.out + cap.err + out.read_text(encoding="utf-8")
+
+
+def test_classify_uses_accepted_start_not_refused_call():
+    # the gate refused "brand-new-name"; the model then found and reused the existing agent
+    calls = [tc("send_message_to_agent", "brand-new-name"), tc("find_agents"), tc("send_message_to_agent", "a-agent")]
+    r = le.classify(calls, SEEDED, "a-agent", starts=["a-agent"])
+    assert r["outcome"] == "reused_expected" and r["find_before_choice"] is True
+    # refused and never retried: nothing started -> no agent call, not a created agent
+    assert le.classify([tc("send_message_to_agent", "brand-new-name")], SEEDED, "a-agent", starts=[])["outcome"] == "no_agent_call"
+    # accepted creation after find_agents
+    r = le.classify([tc("find_agents"), tc("send_message_to_agent", "brand-new-name")], SEEDED, "a-agent", starts=["brand-new-name"])
+    assert r["outcome"] == "created_new" and r["find_before_choice"] is True
+

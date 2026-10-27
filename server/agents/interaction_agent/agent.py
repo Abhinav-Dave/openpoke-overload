@@ -10,7 +10,7 @@ from ...services.execution.roster_view import select_agents, tail_names
 _prompt_path = Path(__file__).parent / "system_prompt.md"
 SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
 
-_FIND_HINT = "If an older agent might fit, call find_agents with a few keywords (try synonyms) before creating a new agent."
+_FIND_HINT = "A find_agents call (a few keywords, try synonyms) is required before creating a new agent; without it the creation is refused. If an older agent fits, reuse it."
 
 
 # Load and return the pre-defined system prompt from markdown file

@@ -71,12 +71,29 @@ def get_load() -> Dict[str, int]:
 _turn_agents: ContextVar[Optional[Set[str]]] = ContextVar("turn_agents", default=None)
 
 
+# Set (non-empty) once find_agents ran this turn; None outside a turn.
+_turn_found: ContextVar[Optional[Set[str]]] = ContextVar("turn_found", default=None)
+
+
 def start_turn():
-    return _turn_agents.set(set())
+    return _turn_agents.set(set()), _turn_found.set(set())
 
 
 def end_turn(token) -> None:
-    _turn_agents.reset(token)
+    _turn_agents.reset(token[0])
+    _turn_found.reset(token[1])
+
+
+def mark_find_agents_called() -> None:
+    found = _turn_found.get()
+    if found is not None:
+        found.add("find_agents")
+
+
+def find_agents_missing() -> bool:
+    """True inside a turn where find_agents has not been called yet."""
+    found = _turn_found.get()
+    return found is not None and not found
 
 
 def try_start_agent(agent_name: str) -> bool:
