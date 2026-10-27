@@ -318,7 +318,8 @@ def worker_main(a):
     agents, _ = load_data()
     queries = json.loads(Path(a.queries_file).read_text(encoding="utf-8"))
     roster, logs = get_agent_roster(), get_execution_agent_logs()
-    seeded_agents = with_clones(agents, a.size, random.Random(SEED))
+    real = json.loads(Path(a.real_file).read_text(encoding="utf-8"))["agents"] if a.real_file else []
+    seeded_agents = roster_for(agents, a.size, real)
     build(roster, logs, seeded_agents)
     seeded = {x["name"] for x in seeded_agents}
     pristine = Path(tempfile.mkdtemp(prefix="openpoke_pristine_")) / "snap"
@@ -370,6 +371,13 @@ async def _one(runtime_cls, text):
 
 
 # ---- parent -----------------------------------------------------------------
+def roster_for(agents, size, real):
+    """Synthetic agents (and clones) padded to `size`, plus any real-inbox agents that are always included."""
+    out = with_clones(agents, max(size - len(real), 0), random.Random(SEED)) + [dict(r, cloned=False) for r in real]
+    random.Random(SEED).shuffle(out)
+    return out
+
+
 def size_queries(queries, agents, size, split, limit):
     roster = with_clones(agents, size, random.Random(SEED))
     return answerable(select_queries(queries, agents, split, limit), roster)
@@ -440,6 +448,8 @@ def run_all(a, sizes, per_size, agents):
                            "--tree", t, "--size", str(s), "--repeat", str(rep), "--queries-file", str(qfile),
                            "--rows-out", str(rows_file), "--budget-left", str(left),
                            "--price-in", str(a.price_in), "--price-out", str(a.price_out)]
+                    if a.real_file:
+                        cmd += ["--real-file", a.real_file]
                     code = subprocess.run(cmd, env=env, cwd=str(tmp)).returncode
                     if rows_file.exists():
                         d = json.loads(rows_file.read_text(encoding="utf-8"))
@@ -499,6 +509,8 @@ def parse(argv):
     p.add_argument("--repeats", type=int, default=2)
     p.add_argument("--limit", type=int, default=0, help="first N queries per category (smoke run)")
     p.add_argument("--new", default=".", help="path of the new-logic tree (contains server/)")
+    p.add_argument("--real-file", help="private JSON {agents, queries} from real_gmail_check.py build; replaces the "
+                   "labelled queries and adds those agents to every roster. Use --out outside eval/results.")
     p.add_argument("--out", default=str(ROOT / "eval" / "results" / "live_eval.json"))
     w = p.add_argument_group("internal worker options")
     w.add_argument("--worker", action="store_true")
@@ -521,7 +533,11 @@ def main(argv=None):
         return 2
     sizes = [int(s) for s in a.sizes.split(",") if s]
     agents, queries = load_data()
-    per_size = {s: size_queries(queries, agents, s, a.split, a.limit) for s in sizes}
+    if a.real_file:
+        real = json.loads(Path(a.real_file).read_text(encoding="utf-8"))
+        per_size = {s: [dict(q, qid=i) for i, q in enumerate(real["queries"])] for s in sizes}
+    else:
+        per_size = {s: size_queries(queries, agents, s, a.split, a.limit) for s in sizes}
     if not a.run:
         print_plan(a, sizes, per_size)
         return 0
