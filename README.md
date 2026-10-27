@@ -1,5 +1,7 @@
 # OpenPoke 🌴
 
+> Fork for a take-home: see [EXPLAINER.md](EXPLAINER.md) for the agent-overload work, tests and results.
+
 OpenPoke is a simplified, open-source take on [Interaction Company’s](https://interaction.co/about) [Poke](https://poke.com/) assistant—built to show how a multi-agent orchestration stack can feel genuinely useful. It keeps the handful of things Poke is great at (email triage, reminders, and persistent agents) while staying easy to spin up locally.
 
 - Multi-agent FastAPI backend that mirrors Poke's interaction/execution split, powered by [OpenRouter](https://openrouter.ai/).
