@@ -81,15 +81,59 @@ The real classifier marked 6 of the 40 emails as important. One poll causes 6 in
 
 My first version of the roster fix was worse than the original. At 150 agents it scored 65% on reworded questions and made duplicates 4% of the time. I raised the threshold to 200 agents, added the names tail, and then added the find-before-create rule in code. The final numbers above come from that corrected version. The offline evaluator alone did not catch this. Only the real model did.
 
+## 4b. Where each number comes from
+
+Every table above comes from a file in `eval/results/`. You rebuild a number by running the script in the second column. The "runs" column counts each time a question is asked, so a question asked twice counts twice.
+
+| Claim | Result file | Script | Model | Runs |
+|---|---|---|---|---|
+| Prompt sizes, calls for email floods, peak parallel agents, overlapping chats | `phase0-original.json` to `phase9-cleanup.json`, `baseline.json` | `eval/baseline.py` | fake | none |
+| 7 of 7 old behaviors unchanged, and the table of gaps | `regression_eval.json` | `eval/regression_eval.py` | fake | none |
+| Is the right agent visible in the prompt, and how big the prompt gets from 10 to 1,000 agents | `routing_eval.json` | `eval/routing_eval.py` | none | 133 questions |
+| Accuracy at 150 agents (the first, flawed version) | `live_eval_150.json` | `eval/live_eval.py` | real, Haiku 5.5 | 76 questions x 2 repeats |
+| Accuracy at 300 and 600 agents, before the extra rule | `live_eval_300_600.json` | `eval/live_eval.py` | real | 152 per size per version |
+| Accuracy at 300 and 600 agents, final version | `live_eval_300_600_gate.json` | `eval/live_eval.py` | real | 152 per size |
+| Speed at 300 agents | `live_eval_latency_300.json` | `eval/live_eval.py` | real | 36 questions x 2 repeats, per version |
+| Real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 40 emails, 40 questions x 2 |
+
+The tests themselves are in `tests/`. There are 233 tests in 23 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
+
+### The 76 questions
+
+The file `eval/datasets/routing_queries.json` holds 133 questions about 150 made-up agents in `eval/datasets/routing_agents.json`. A coding agent that I directed wrote them. They do not come from real users. Each question has an expected answer: an agent name, or "none, make a new one". I fixed the split by position before I scored anything. 57 questions are for tuning and 76 are for the final report. The 76 test questions fall into six groups:
+
+| Group | Count | Example | Right answer |
+|---|---|---|---|
+| direct | 14 | "Triage the new bug reports from today" | the bug-triage agent |
+| paraphrase (reworded) | 13 | "Set up my weekly chat with my counsellor" | the agent for counseling sessions, though no word matches |
+| disambiguation | 18 | "Draft a reminder for Acme's unpaid invoice" | the Acme invoice agent, not the Globex one |
+| follow-up | 10 | "do that again" | the agent used just before |
+| no match | 12 | "Research electric bikes for commuting" | create a new agent |
+| off-topic | 9 | "tell me a joke" | no agent |
+
+### What counts as correct
+
+For a question with an expected agent, the run is correct if the manager's accepted choice is that agent. A clone of that agent also counts, because the roster padding adds look-alikes with a number suffix. For a no-match or off-topic question, the run is correct if the manager creates a new agent or calls none. A duplicate means the manager created a new agent although the expected one existed. A wrong reuse means it picked a different existing agent.
+
+### Do these tests measure the right thing?
+
+They measure routing: does the manager pick the right worker without making a duplicate, and what does that cost in tokens, calls and seconds? That is the thing the roster change touches, so the test fits the change. They do not measure whether a worker then does its job well. I stubbed that part out because I did not change it. They also use made-up agents with tidy names, single-turn questions, one model, and a small sample. The real-inbox run partly covers the messy-name gap, but only at 40 questions.
+
 ## 5. Honest limits
 
 - I tested one model (Haiku 5.5) on made-up agents with single-turn questions. A weaker model can behave differently.
 - In a large roster, the new version makes 0.2 to 0.35 more model calls per question. The model searches before it creates an agent.
 - The difference in accuracy between the two versions is one or two points. That is inside the noise of 76 questions.
-- Choosing agents for the bounded view re-reads every log on each message. It takes about 155 ms at 300 agents and 511 ms at 1,000. A cache keyed on log file time fixes this. I did not build it.
+- The new version is a little slower end to end. In a live run at 300 agents (36 questions asked twice, 72 runs per version), a question took 4.36 seconds on average on the original and 4.79 seconds on the new version. The new prompts are 16% shorter, but the extra search call costs more time than the shorter prompt saves. The gap is smaller than the spread inside each version, so treat it as a hint and not as proof. Nearly all of the slowdown is in questions that need a new agent.
+- Choosing agents for the bounded view takes about 160 ms per message at 300 agents, 580 ms at 1,000, and 1.9 seconds at 3,000, measured on Windows. Reading file details costs most of that time. Tokenizing and scoring cost a few milliseconds. A cache of log contents saves about 70%, but it adds stale-data risk, so I did not build it. A single directory scan is the better fix if rosters reach 1,000 agents.
 - The reminder check samples only the first 6 occurrences. Retry counts reset on restart. The trigger count check is not atomic.
 - The digest names at most 20 emails.
 - The real inbox is small and quiet, and the questions are templates.
+
+### Ideas I measured and chose not to build
+
+- Merging near-duplicate agents. A merge must move logs, rewrite reminder rows, and keep old names working across three stores that share no transaction. A word-overlap rule can only separate real duplicates from agents that are meant to be separate (one invoice agent per client) when it compares names, and the margin is thin. With the find-before-create rule on, the live tests showed 0 duplicates out of 152 at 300 agents and 1 out of 152 at 600. A wrong merge sends a request into the wrong history, which is worse than a duplicate.
+- A cache for agent selection. See the latency limit above.
 
 ## 6. Other gaps I found
 

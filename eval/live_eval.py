@@ -85,6 +85,7 @@ def metrics(rows):
     counts = {o: sum(r["outcome"] == o for r in rows) for o in OUTCOMES}
     exp = [r for r in rows if r["expected"]]
     calls = [r["calls"] for r in rows]
+    secs = [r["seconds"] for r in rows]
     found = [r for r in rows if r["find_called"]]
     return {"n": n, "counts": counts,
             "correct_rate": _rate(sum(_correct(r) for r in rows), n),
@@ -93,6 +94,9 @@ def metrics(rows):
             "prompt_tokens_mean": round(sum(r["prompt_tokens"] for r in rows) / n) if n else None,
             "completion_tokens_mean": round(sum(r["completion_tokens"] for r in rows) / n) if n else None,
             "calls_mean": round(sum(calls) / n, 2) if n else None,
+            "latency_mean": round(sum(secs) / n, 3) if n else None,
+            "latency_p50": percentile(secs, 50), "latency_p95": percentile(secs, 95),
+            "model_seconds_mean": round(sum(r["model_seconds"] for r in rows) / n, 3) if n else None,
             "loop_p95": percentile(calls, 95),
             "find_called_rate": _rate(len(found), n),
             "correct_rate_when_find_called": _rate(sum(_correct(r) for r in found), len(found))}
@@ -214,6 +218,7 @@ class RunState:
 
     def reset(self):
         self.calls = self.prompt_tokens = self.completion_tokens = 0
+        self.model_seconds, self.call_seconds = 0.0, []
         self.tool_calls, self.starts = [], []
 
 
@@ -229,7 +234,11 @@ def install_stubs(state):
         setattr(obj, name, value)
 
     async def counted(*a, **kw):
+        t0 = time.perf_counter()
         resp = await real(*a, **kw)
+        dt = time.perf_counter() - t0
+        state.call_seconds.append(dt)
+        state.model_seconds += dt
         usage = resp.get("usage") or {}
         pt, ct = usage.get("prompt_tokens"), usage.get("completion_tokens")
         if not isinstance(pt, int) or not isinstance(ct, int):   # ponytail: chars/4 guess if the provider omits usage
@@ -347,7 +356,9 @@ def worker_main(a):
             seed_followup_history(get_conversation_log(), q["last_used"])
         state.reset()
         roster_size = len(roster.get_agents())
+        t0 = time.perf_counter()
         res = asyncio.run(_one(InteractionAgentRuntime, q["text"]))
+        seconds = time.perf_counter() - t0
         c = classify(state.tool_calls, seeded, q["expected"], state.starts)
         error = None if res.success else scrub(res.error or "failed")[:120]
         if error and not state.tool_calls:
@@ -355,7 +366,9 @@ def worker_main(a):
         spent += cost(state.prompt_tokens, state.completion_tokens, a.price_in, a.price_out)
         rows.append({"tree": a.tree, "size": a.size, "repeat": a.repeat, "qid": q["qid"], "category": q["category"],
                      "expected": q["expected"], **c, "calls": state.calls, "prompt_tokens": state.prompt_tokens,
-                     "completion_tokens": state.completion_tokens, "roster_size": roster_size, "error": error})
+                     "completion_tokens": state.completion_tokens, "roster_size": roster_size, "error": error,
+                     "seconds": round(seconds, 3), "model_seconds": round(state.model_seconds, 3),
+                     "slowest_call_seconds": round(max(state.call_seconds, default=0.0), 3)})
         say(f"[{a.tree} n={a.size} r={a.repeat}] {i + 1}/{len(queries)} {q['category']} -> {c['outcome']}")
         _write_json(a.rows_out, {"rows": rows, "spent_usd": spent, "stopped": False,
                                  "usage_missing": state.usage_missing, "gmail_calls": state.gmail_calls})
@@ -484,11 +497,12 @@ def print_summary(result):
     for t, by_size in result["summary"].items():
         for s, sm in by_size.items():
             say(f"\n{t.upper()} tree, roster {s} agents (consistency across repeats: {sm['consistency']})")
-            say(f"{'category':15}{'n':>4}{'correct':>9}{'dup':>7}{'wrong':>7}{'tok_in':>8}{'calls':>7}{'p95':>5}{'find':>6}")
+            say(f"{'category':15}{'n':>4}{'correct':>9}{'dup':>7}{'wrong':>7}{'tok_in':>8}{'calls':>7}{'p95':>5}{'find':>6}{'s_mean':>8}{'s_p50':>7}{'s_p95':>7}{'model_s':>8}")
             for name, m in list(sm["by_category"].items()) + [("OVERALL", sm["overall"])]:
                 f = lambda v: "  n/a" if v is None else f"{v:5.2f}"
                 say(f"{name:15}{m['n']:>4}{f(m['correct_rate']):>9}{f(m['duplicate_rate']):>7}{f(m['wrong_reuse_rate']):>7}"
-                    f"{m['prompt_tokens_mean']:>8}{m['calls_mean']:>7}{m['loop_p95']:>5}{f(m['find_called_rate']):>6}")
+                    f"{m['prompt_tokens_mean']:>8}{m['calls_mean']:>7}{m['loop_p95']:>5}{f(m['find_called_rate']):>6}"
+                    f"{m['latency_mean']:>8.2f}{m['latency_p50']:>7.2f}{m['latency_p95']:>7.2f}{m['model_seconds_mean']:>8.2f}")
     say(f"\nEstimated spend: ${result['spent_estimate_usd']:.4f} (usage tokens x given prices); "
         f"gmail calls: {result['gmail_calls']}; responses without usage: {result['usage_missing']}")
     d = result["account_spend_delta_usd"]

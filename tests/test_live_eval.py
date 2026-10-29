@@ -23,7 +23,7 @@ def tc(tool, agent=None):
 def row(**kw):
     base = dict(tree="new", size=150, repeat=1, qid=0, category="direct", expected="a", outcome="reused_expected",
                 agent="a", find_called=False, find_before_choice=False, calls=2, prompt_tokens=1000,
-                completion_tokens=50, roster_size=150, error=None)
+                completion_tokens=50, roster_size=150, error=None, seconds=2.0, model_seconds=1.5)
     return {**base, **kw}
 
 
@@ -180,6 +180,8 @@ def test_stubs_count_usage_block_gmail_and_start_nothing(monkeypatch, tmp_path):
         assert state.tool_calls == [("send_message_to_agent", "a-agent")]
         assert state.starts == ["a-agent"]                   # recorded, nothing really started
         assert state.usage_missing == 0
+        assert len(state.call_seconds) == 2 and state.model_seconds == pytest.approx(sum(state.call_seconds))
+        assert all(x >= 0 for x in state.call_seconds)
         with pytest.raises(RuntimeError):
             gmail_client.execute_gmail_tool("GMAIL_FETCH_EMAILS", "u", {})
         assert state.gmail_calls == 1
@@ -247,6 +249,8 @@ def test_end_to_end_smoke_both_trees(monkeypatch, tmp_path, capfd):
         assert fu["find_called"] and fu["find_before_choice"]
         s = data["summary"][tree]["150"]
         assert s["overall"]["n"] == 12 and s["consistency"] == 1.0
+        assert all(r["seconds"] >= r["model_seconds"] >= 0 and r["slowest_call_seconds"] >= 0 for r in rows)
+        assert s["overall"]["latency_p95"] >= s["overall"]["latency_p50"] >= 0
         assert s["overall"]["correct_rate"] == round(4 / 6, 3)   # direct, followup, no_match, offtopic
     assert data["gmail_calls"] == 0
     assert data["spent_estimate_usd"] > 0
@@ -277,3 +281,11 @@ def test_classify_uses_accepted_start_not_refused_call():
     r = le.classify([tc("find_agents"), tc("send_message_to_agent", "brand-new-name")], SEEDED, "a-agent", starts=["brand-new-name"])
     assert r["outcome"] == "created_new" and r["find_before_choice"] is True
 
+
+
+def test_latency_metrics():
+    rows = [row(seconds=s, model_seconds=s / 2) for s in (1.0, 2.0, 3.0, 4.0)]
+    m = le.metrics(rows)
+    assert m["latency_mean"] == 2.5 and m["latency_p50"] == 2.0 and m["latency_p95"] == 4.0
+    assert m["model_seconds_mean"] == 1.25
+    assert le.metrics([])["latency_mean"] is None
