@@ -17,6 +17,11 @@ OpenRouterBaseURL = "https://openrouter.ai/api/v1"
 _RETRY_STATUSES = {429, 500, 502, 503, 504}
 MAX_RETRY_AFTER_S = 30.0
 _sleep = asyncio.sleep  # tests replace this
+_cache_unsupported = False  # set once a 400 rejects cache_control; skip it for the rest of the process
+
+
+def _wants_cache(model: str) -> bool:
+    return model.startswith("anthropic/") and os.getenv("OPENPOKE_PROMPT_CACHE", "1") != "0" and not _cache_unsupported
 
 
 def _max_attempts() -> int:
@@ -87,6 +92,8 @@ async def request_chat_completion(
     }
     if tools:
         payload["tools"] = tools
+    if _wants_cache(model):
+        payload["cache_control"] = {"type": "ephemeral"}  # OpenRouter automatic caching: breakpoint on last cacheable block
 
     url = f"{base_url.rstrip('/')}/chat/completions"
     headers = _headers(api_key=api_key)
@@ -101,6 +108,15 @@ async def request_chat_completion(
                     data = response.json()
                     usage.record_success(model, data.get("usage") if isinstance(data, dict) else None)
                     return data
+                if response.status_code == 400 and "cache_control" in payload and "cache" in response.text.lower():
+                    global _cache_unsupported
+                    _cache_unsupported = True
+                    del payload["cache_control"]
+                    response = await client.post(url, headers=headers, json=payload, timeout=60.0)
+                    if response.status_code < 400:
+                        data = response.json()
+                        usage.record_success(model, data.get("usage") if isinstance(data, dict) else None)
+                        return data
                 if response.status_code not in _RETRY_STATUSES:
                     usage.record_failure()
                     try:
