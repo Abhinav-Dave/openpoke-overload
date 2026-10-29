@@ -92,6 +92,7 @@ def metrics(rows):
             "duplicate_rate": _rate(sum(r["outcome"] == "created_new" for r in exp), len(exp)),  # expected agent existed
             "wrong_reuse_rate": _rate(counts["reused_other"], n),
             "prompt_tokens_mean": round(sum(r["prompt_tokens"] for r in rows) / n) if n else None,
+            "cached_tokens_mean": round(sum(r.get("cached_tokens", 0) for r in rows) / n) if n else None,
             "completion_tokens_mean": round(sum(r["completion_tokens"] for r in rows) / n) if n else None,
             "calls_mean": round(sum(calls) / n, 2) if n else None,
             "latency_mean": round(sum(secs) / n, 3) if n else None,
@@ -217,7 +218,7 @@ class RunState:
         self.reset()
 
     def reset(self):
-        self.calls = self.prompt_tokens = self.completion_tokens = 0
+        self.calls = self.prompt_tokens = self.completion_tokens = self.cached_tokens = 0
         self.model_seconds, self.call_seconds = 0.0, []
         self.tool_calls, self.starts = [], []
 
@@ -248,6 +249,8 @@ def install_stubs(state):
         state.calls += 1
         state.prompt_tokens += pt
         state.completion_tokens += ct
+        details = usage.get("prompt_tokens_details")
+        state.cached_tokens += int((details or {}).get("cached_tokens") or 0) if isinstance(details, dict) else 0
         msg = (resp.get("choices") or [{}])[0].get("message") or {}
         for t in msg.get("tool_calls") or []:
             fn = t.get("function") or {}
@@ -366,7 +369,7 @@ def worker_main(a):
         spent += cost(state.prompt_tokens, state.completion_tokens, a.price_in, a.price_out)
         rows.append({"tree": a.tree, "size": a.size, "repeat": a.repeat, "qid": q["qid"], "category": q["category"],
                      "expected": q["expected"], **c, "calls": state.calls, "prompt_tokens": state.prompt_tokens,
-                     "completion_tokens": state.completion_tokens, "roster_size": roster_size, "error": error,
+                     "completion_tokens": state.completion_tokens, "cached_tokens": state.cached_tokens, "roster_size": roster_size, "error": error,
                      "seconds": round(seconds, 3), "model_seconds": round(state.model_seconds, 3),
                      "slowest_call_seconds": round(max(state.call_seconds, default=0.0), 3)})
         say(f"[{a.tree} n={a.size} r={a.repeat}] {i + 1}/{len(queries)} {q['category']} -> {c['outcome']}")
