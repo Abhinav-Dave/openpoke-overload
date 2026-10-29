@@ -135,6 +135,15 @@ They measure routing: does the manager pick the right worker without making a du
 - Merging near-duplicate agents. A merge must move logs, rewrite reminder rows, and keep old names working across three stores that share no transaction. A word-overlap rule can only separate real duplicates from agents that are meant to be separate (one invoice agent per client) when it compares names, and the margin is thin. With the find-before-create rule on, the live tests showed 0 duplicates out of 152 at 300 agents and 1 out of 152 at 600. A wrong merge sends a request into the wrong history, which is worse than a duplicate.
 - A cache for agent selection. See the latency limit above.
 
+### Two ideas I built and tested after the main work
+
+Prompt caching (kept). The model client now asks OpenRouter to cache the unchanging start of each prompt (the system prompt and tool list) for Anthropic models. Setting `OPENPOKE_PROMPT_CACHE=0` turns it off. If a provider rejects the request, the code retries once without it. In a live run of 72 questions at 300 agents, the provider served 9,755 of 17,608 input tokens per question from the cache (55%). In a second run right after, it served 15,526 of 17,557 (88%), because the cache was already warm. A cached token costs a tenth of a normal one, so this should cut input cost roughly in half. I did not measure dollars per version, so treat that as an estimate. The run also kept accuracy at 100% on those 72 questions.
+
+Server-side auto-search (built, measured, removed). The idea: when the roster scorer says nothing fits, the server runs the agent search itself, so the model skips the extra call that makes new-topic questions slow. I built it with tests, and two live runs showed no change. New-topic questions still took 3.3 calls and about 6.4 seconds, against 1.9 calls and 4.2 seconds on the original. I found two reasons.
+1. The "nothing fits" signal is rare. Only 1 of 12 new-topic questions triggered it, because common words such as "find" and "plan" match some agent name.
+2. The extra search call is not wasted work. When the model searches, it picks its own keywords, and it often tries synonyms. That is how it finds a reworded match that the scorer missed. A server-side search on the user's own words cannot do that. This is the same reason the first version of the roster fix, which had no forced search, made duplicates.
+I reverted the change (commit `c0460eb`) and kept the two result files, `eval/results/live_eval_latency_300_v2.json` and `_v3.json`, as the evidence. The slower speed on new-topic questions is the price of avoiding duplicates.
+
 ## 6. Other gaps I found
 
 I fixed these in code:
