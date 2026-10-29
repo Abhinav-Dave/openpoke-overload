@@ -50,6 +50,9 @@ def reset_state(monkeypatch):
     get_trigger_service().clear_all()
 
     get_agent_roster()._agents = []
+    from server.services.execution import limits
+
+    limits._find_pending.set(False)
     interaction_tools._EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
     summ_scheduler._pending = summ_scheduler._running = False
     importance_watcher._watcher_instance = None

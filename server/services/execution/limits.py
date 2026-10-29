@@ -75,8 +75,14 @@ _turn_agents: ContextVar[Optional[Set[str]]] = ContextVar("turn_agents", default
 _turn_found: ContextVar[Optional[Set[str]]] = ContextVar("turn_found", default=None)
 
 
+# Marked before the turn started (the prompt builder runs first); consumed by start_turn.
+_find_pending: ContextVar[bool] = ContextVar("find_pending", default=False)
+
+
 def start_turn():
-    return _turn_agents.set(set()), _turn_found.set(set())
+    pending = _find_pending.get()
+    _find_pending.set(False)
+    return _turn_agents.set(set()), _turn_found.set({"find_agents"} if pending else set())
 
 
 def end_turn(token) -> None:
@@ -88,6 +94,8 @@ def mark_find_agents_called() -> None:
     found = _turn_found.get()
     if found is not None:
         found.add("find_agents")
+    else:
+        _find_pending.set(True)
 
 
 def find_agents_missing() -> bool:
