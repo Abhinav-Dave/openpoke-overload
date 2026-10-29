@@ -139,7 +139,7 @@ async def test_runtime_rejected_create_then_find_then_reuse(fake_llm, stub):
         _msg(_tool("send_message_to_agent", {"agent_name": "misc-helper", "instructions": "status"}, 3)),
         {"choices": [{"message": {"content": "done"}}]},
     ]
-    result = await InteractionAgentRuntime().execute("sourdough starter feeding schedule")  # confident match: no auto-search, the gate is the backstop
+    result = await InteractionAgentRuntime().execute("how is my bread culture")
     await asyncio.sleep(0.01)
     assert result.success
     assert stub.started == ["misc-helper"]
@@ -155,7 +155,7 @@ async def test_runtime_find_nothing_then_create_succeeds(fake_llm, stub):
         _msg(_tool("send_message_to_agent", {"agent_name": "kayak-trip", "instructions": "plan"}, 3)),
         {"choices": [{"message": {"content": "done"}}]},
     ]
-    result = await InteractionAgentRuntime().execute("sourdough starter feeding kayak trip")  # confident match: no auto-search, the gate is the backstop
+    result = await InteractionAgentRuntime().execute("plan a kayak trip")
     await asyncio.sleep(0.01)
     assert result.success
     assert stub.started == ["kayak-trip"]

@@ -4,8 +4,8 @@ from html import escape
 from pathlib import Path
 from typing import Dict, List
 
-from ...services.execution import get_agent_roster, limits
-from ...services.execution.roster_view import find_agents, select_agents, tail_names
+from ...services.execution import get_agent_roster
+from ...services.execution.roster_view import select_agents, tail_names
 
 _prompt_path = Path(__file__).parent / "system_prompt.md"
 SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
@@ -75,15 +75,6 @@ def _render_active_agents(query: str = "", message_type: str = "user") -> str:
             "No listed agent fits this message. Create a new agent with a short descriptive name, "
             "unless the user clearly means an older agent (then reuse it by its exact name). " + _FIND_HINT
         )
-        # Run the find_agents search here (saves a model round trip) and satisfy the find-before-create gate.
-        close = find_agents(query, agents)
-        limits.mark_find_agents_called()
-        if close:
-            items = "; ".join(
-                escape(a.name, quote=True) + (f" ({escape(a.description, quote=False)})" if a.description else "")
-                for a in close
-            )
-            rendered.append(f"Closest existing agents (searched for you, none is a confident match): {items}")
 
     return "\n".join(rendered)
 
