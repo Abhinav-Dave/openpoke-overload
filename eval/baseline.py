@@ -38,6 +38,8 @@ class State:
         self.latency = {}
 
 S = State(); S.reset()
+LIVE = {"on": False, "usd": 0.0, "cap": 1.0, "tokens_in": 0, "tokens_out": 0, "requested": 0, "calls": 0}
+PRICE_IN, PRICE_OUT = 0.10, 0.50   # USD per million tokens, haiku-5.5
 
 
 def _tool_call(name, args):
@@ -86,6 +88,37 @@ def make_fake(label):
     return fake
 
 
+def make_live(label, real):
+    """Same bookkeeping as the fake, but the real model answers. Stops when the spend cap is reached."""
+    async def live(*args, **kw):
+        if LIVE["usd"] >= LIVE["cap"]:
+            raise RuntimeError(f"spend cap ${LIVE['cap']} reached")
+        messages = kw.get("messages") or []
+        system = kw.get("system") or ""
+        S.calls[label] += 1
+        S.inflight[label] += 1
+        S.peak[label] = max(S.peak[label], S.inflight[label])
+        first = len(messages) == 1
+        size_ = (len(system) + sum(len(str(m.get("content", ""))) for m in messages), len(system))
+        if "interaction_agent" in label and first:
+            S.runs += 1
+            S.prompt[label] = size_
+        if "execution_agent.runtime" in label and first:
+            S.prompt[label] = size_
+        try:
+            resp = await real(*args, **kw)
+        finally:
+            S.inflight[label] -= 1
+        u = resp.get("usage") or {}
+        pt, ct = u.get("prompt_tokens") or size_[0] // 4, u.get("completion_tokens") or 0
+        LIVE["tokens_in"] += pt; LIVE["tokens_out"] += ct; LIVE["calls"] += 1
+        LIVE["usd"] += (pt * PRICE_IN + ct * PRICE_OUT) / 1e6
+        for t in ((resp.get("choices") or [{}])[0].get("message") or {}).get("tool_calls") or []:
+            LIVE["requested"] += (t.get("function") or {}).get("name") == "send_message_to_agent"
+        return resp
+    return live
+
+
 # ---- setup ----------------------------------------------------------------
 def install_fcntl_stub():
     # Only because the original roster.py does `import fcntl` (POSIX only); flock is a no-op here.
@@ -109,7 +142,8 @@ def patch_all():
         if not name.startswith("server") or mod is None:
             continue
         if hasattr(mod, "request_chat_completion") and not name.startswith("server.openrouter_client"):
-            mod.request_chat_completion = make_fake(name.replace("server.", ""))
+            label = name.replace("server.", "")
+            mod.request_chat_completion = make_live(label, REAL_COMPLETION) if LIVE["on"] else make_fake(label)
             found["request_chat_completion"] += 1
         if hasattr(mod, "execute_gmail_tool"):
             mod.execute_gmail_tool = fake_gmail
@@ -120,6 +154,7 @@ def patch_all():
     return found
 
 
+REAL_COMPLETION = None
 INBOX_FACTORY = lambda: []
 
 
@@ -257,9 +292,12 @@ async def m_burst_agents():
     seed(0); reset_conversation(); S.reset()
     S.latency["agents.execution_agent.runtime"] = EXEC_SLEEP
     t0 = time.perf_counter()
-    await InteractionAgentRuntime().execute("SPAWN8 do eight things")
+    msg = ("Start eight separate agents at the same time, named burst-agent-0 to burst-agent-7, each to check my inbox "
+           "for a different topic.") if LIVE["on"] else "SPAWN8 do eight things"
+    LIVE["requested"] = 0
+    await InteractionAgentRuntime().execute(msg)
     await drain()
-    return {"agents_requested": 8, "peak_parallel_agents": _exec_peak(), "interaction_runs": S.runs,
+    return {"agents_requested": LIVE["requested"] if LIVE["on"] else 8, "peak_parallel_agents": _exec_peak(), "interaction_runs": S.runs,
             "total_model_calls": sum(S.calls.values()), "wall_s": round(time.perf_counter() - t0, 2)}
 
 
@@ -323,12 +361,16 @@ def table(r):
     return "\n".join(f"{a.ljust(w)}  {b}" for a, b in rows)
 
 
+ONLY = set()
+
+
 async def amain():
     results = {}
     for key, fn in (("interaction_prompt", m_interaction_prompt), ("execution_prompt", m_execution_prompt),
                     ("email_flood", m_flood), ("burst_triggers", m_burst_triggers),
                     ("burst_agents", m_burst_agents), ("burst_chat", m_burst_chat)):
-        results[key] = await run_metric(fn)
+        if not ONLY or key in ONLY:
+            results[key] = await run_metric(fn)
     return results
 
 
@@ -337,7 +379,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=None)
     ap.add_argument("--label", default="baseline")
+    ap.add_argument("--live", action="store_true", help="call the real model (needs OPENROUTER_API_KEY in the environment)")
+    ap.add_argument("--max-usd", type=float, default=1.0)
+    ap.add_argument("--only", default="", help="comma list of metric names to run, e.g. burst_chat")
     args = ap.parse_args()
+    LIVE["on"], LIVE["cap"] = args.live, args.max_usd
+    ONLY.update(x for x in args.only.split(",") if x)
+    if args.live and not os.environ.get("OPENROUTER_API_KEY"):
+        sys.exit("--live needs OPENROUTER_API_KEY in the environment")
     if args.src is None:
         sys.path.insert(0, str(ROOT / "eval"))
         from regression_eval import default_orig
@@ -347,7 +396,9 @@ def main():
     try:
         shutil.copytree(src / "server", Path(TMP) / "server", ignore=shutil.ignore_patterns("__pycache__", "data"))
         sys.path.insert(0, TMP)
-        os.environ["OPENROUTER_API_KEY"] = "fake-key"   # read at import; no call ever leaves the process
+        if not args.live:
+            os.environ["OPENROUTER_API_KEY"] = "fake-key"   # read at import; no call ever leaves the process
+        os.environ.setdefault("OPENPOKE_MODEL", "anthropic/claude-haiku-5.5")
         install_fcntl_stub()
         for mod in ("server.agents.interaction_agent.runtime", "server.agents.execution_agent.runtime",
                     "server.services.conversation.summarization.summarizer", "server.services.gmail.importance_classifier",
@@ -358,11 +409,16 @@ def main():
             except Exception as exc:
                 print(f"warning: could not import {mod}: {exc}", file=sys.stderr)
         import logging; logging.disable(logging.CRITICAL)
+        global REAL_COMPLETION
+        from server.openrouter_client import client as oc
+        REAL_COMPLETION = oc.request_chat_completion
         seams = patch_all()
         results = asyncio.run(amain())
         results["meta"] = {"label": args.label, "python": platform.python_version(), "git_head": git_head(),
                            "src": str(src), "timestamp": dt.datetime.now().isoformat(timespec="seconds"),
-                           "seams_patched": dict(seams), "fake_latency_s": LATENCY, "exec_sleep_s": EXEC_SLEEP}
+                           "seams_patched": dict(seams), "fake_latency_s": LATENCY, "exec_sleep_s": EXEC_SLEEP,
+                           "live": args.live, "live_usd": round(LIVE["usd"], 4), "live_calls": LIVE["calls"],
+                           "live_tokens_in": LIVE["tokens_in"], "live_tokens_out": LIVE["tokens_out"]}
         out = ROOT / "eval" / "results" / f"{args.label}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")

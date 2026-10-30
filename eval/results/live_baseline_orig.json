@@ -1,0 +1,94 @@
+{
+  "interaction_prompt": {
+    "10": {
+      "chars": 15049,
+      "approx_tokens": 3762,
+      "system_chars": 10424
+    },
+    "50": {
+      "chars": 13159,
+      "approx_tokens": 3289,
+      "system_chars": 10424
+    },
+    "100": {
+      "chars": 19366,
+      "approx_tokens": 4841,
+      "system_chars": 10424
+    },
+    "300": {
+      "chars": 23775,
+      "approx_tokens": 5943,
+      "system_chars": 10424
+    }
+  },
+  "execution_prompt": {
+    "5": {
+      "chars": 5719,
+      "approx_tokens": 1429,
+      "system_chars": 5686
+    },
+    "50": {
+      "chars": 22685,
+      "approx_tokens": 5671,
+      "system_chars": 22652
+    },
+    "200": {
+      "chars": 79381,
+      "approx_tokens": 19845,
+      "system_chars": 79348
+    }
+  },
+  "email_flood": {
+    "10": {
+      "classifier_calls": 10,
+      "interaction_runs": 12,
+      "total_model_calls": 101,
+      "wall_s": 107.36
+    },
+    "50": {
+      "classifier_calls": 50,
+      "interaction_runs": 43,
+      "total_model_calls": 201,
+      "wall_s": 322.5
+    }
+  },
+  "burst_triggers": {
+    "due_triggers": 20,
+    "peak_parallel_agents": 20,
+    "interaction_runs": 0,
+    "total_model_calls": 140,
+    "wall_s": 64.62
+  },
+  "burst_agents": {
+    "agents_requested": 0,
+    "peak_parallel_agents": 1,
+    "interaction_runs": 21,
+    "total_model_calls": 88,
+    "wall_s": 43.31
+  },
+  "burst_chat": {
+    "chat_messages": 5,
+    "peak_overlapping_interaction_runs": 5,
+    "interaction_runs": 5,
+    "wall_s": 5.31
+  },
+  "meta": {
+    "label": "live_baseline_orig",
+    "python": "3.14.2",
+    "git_head": "23a1f7da4deb33f1588469469f0939de59fcca15",
+    "src": "C:\\Users\\abhin\\AppData\\Local\\Temp\\tmp.01szkqvHgx",
+    "timestamp": "2026-10-29T23:41:41",
+    "seams_patched": {
+      "request_chat_completion": 5,
+      "execute_gmail_tool": 7,
+      "get_active_gmail_user_id": 7
+    },
+    "fake_latency_s": 0.05,
+    "exec_sleep_s": 0.2,
+    "live": true,
+    "live_usd": 0.4722,
+    "live_calls": 681,
+    "live_tokens_in": 3864072,
+    "live_tokens_out": 171544
+  }
+}

@@ -77,6 +77,22 @@ Real inbox, 40 emails, messy agent names, 300 agents (40 questions, 2 repeats):
 
 The real classifier marked 6 of the 40 emails as important. One poll causes 6 interaction runs in the original and 3 in the new code. I did the real inbox read once, it was read-only, and I disconnected Gmail afterward.
 
+### The same overload scenarios with the real model
+
+The table above uses a scripted stand-in for the model, so it shows what the code does when the model behaves in a fixed way. I also ran the same scenarios with the real model (Haiku 5.5, fake Gmail), one run per version. The script is `python eval/baseline.py --live`, and the results are in `live_baseline_orig.json` and `live_baseline_new.json`. The two runs cost $0.47 and $0.28 and used 3.9 million and 2.0 million input tokens.
+
+| Measure | Original | New |
+|---|---|---|
+| Interaction runs for 10 / 50 important emails | 12 / 43 | 1 / 1 |
+| Model calls for 10 / 50 important emails | 101 / 201 | 12 / 51 |
+| Seconds for 10 / 50 important emails | 107 / 322 | 32 / 149 |
+| Peak parallel agents, 20 due reminders | 20 | 5 |
+| Peak overlapping runs, 5 chat messages at once | 5 | 1 |
+| Interaction prompt at 300 agents (tokens) | 5,943 | 4,687 |
+| Execution prompt, 200 log entries (tokens) | 19,845 | 2,916 |
+
+Two cautions. First, each number is one run, and the real model varies from run to run, so read the direction and not the exact digits. Second, the "8 agents in one message" test did not work with the real model. In both versions the model started none of the eight agents when I asked, so I do not use that row. The scripted version still covers it. In the full live run of the new code, the chat test read 0 because state from the earlier test leaked in. I ran it again alone (`--only burst_chat`) and it read 1, and the result file says so.
+
 ### What the live test taught me
 
 My first version of the roster fix was worse than the original. At 150 agents it scored 65% on reworded questions and made duplicates 4% of the time. I raised the threshold to 200 agents, added the names tail, and then added the find-before-create rule in code. The final numbers above come from that corrected version. The offline evaluator alone did not catch this. Only the real model did.
@@ -88,6 +104,7 @@ Every table above comes from a file in `eval/results/`. You rebuild a number by 
 | Claim | Result file | Script | Model | Runs |
 |---|---|---|---|---|
 | Prompt sizes, calls for email floods, peak parallel agents, overlapping chats | `phase0-original.json` to `phase9-cleanup.json`, `baseline.json` | `eval/baseline.py` | fake | none |
+| The same scenarios with the real model | `live_baseline_orig.json`, `live_baseline_new.json` | `eval/baseline.py --live` | real, Haiku 5.5 | 1 run per version |
 | 7 of 7 old behaviors unchanged, and the table of gaps | `regression_eval.json` | `eval/regression_eval.py` | fake | none |
 | Is the right agent visible in the prompt, and how big the prompt gets from 10 to 1,000 agents | `routing_eval.json` | `eval/routing_eval.py` | none | 133 questions |
 | Accuracy at 150 agents (the first, flawed version) | `live_eval_150.json` | `eval/live_eval.py` | real, Haiku 5.5 | 76 questions x 2 repeats |
@@ -96,7 +113,7 @@ Every table above comes from a file in `eval/results/`. You rebuild a number by 
 | Speed at 300 agents | `live_eval_latency_300.json` | `eval/live_eval.py` | real | 36 questions x 2 repeats, per version |
 | Real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 40 emails, 40 questions x 2 |
 
-The tests themselves are in `tests/`. There are 239 tests in 22 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
+The tests themselves are in `tests/`. There are 240 tests in 23 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
 
 ### The 76 questions
 
@@ -165,6 +182,7 @@ I flag these without code:
 pip install -r server/requirements.txt pytest pytest-asyncio
 python -m pytest -q
 python eval/baseline.py
+python eval/baseline.py --live --max-usd 1.5   # real model, needs OPENROUTER_API_KEY in the environment
 python eval/regression_eval.py
 python eval/routing_eval.py
 python eval/live_eval.py            # dry run, prints a cost estimate
