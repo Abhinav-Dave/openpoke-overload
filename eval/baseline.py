@@ -335,9 +335,13 @@ async def amain():
 def main():
     global TMP
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", default=str(ROOT / "session_context" / "baseline_src"))
+    ap.add_argument("--src", default=None)
     ap.add_argument("--label", default="baseline")
     args = ap.parse_args()
+    if args.src is None:
+        sys.path.insert(0, str(ROOT / "eval"))
+        from regression_eval import default_orig
+        args.src = str(default_orig())
     src = Path(args.src).resolve()
     TMP = tempfile.mkdtemp(prefix="openpoke_eval_")
     try:

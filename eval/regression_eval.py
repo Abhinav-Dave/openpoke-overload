@@ -17,10 +17,16 @@ MARK = "RESULT:"
 
 
 def default_orig():
+    """The original code: a private copy if present, else the first commit, pulled out of git into a temp dir."""
     for p in [ROOT, *ROOT.parents]:
         if (p / "session_context" / "baseline_src" / "server").is_dir():
             return p / "session_context" / "baseline_src"
-    return ROOT / "session_context" / "baseline_src"
+    import io, subprocess, tarfile
+    dest = Path(tempfile.mkdtemp(prefix="openpoke_orig_"))
+    out = subprocess.run(["git", "archive", "9788701", "server"], cwd=ROOT, capture_output=True, check=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(out)) as tar:
+        tar.extractall(dest, members=[m for m in tar.getmembers() if m.name.startswith("server") and ".." not in Path(m.name).parts])
+    return dest
 
 
 # =============================== WORKER SIDE ===============================
