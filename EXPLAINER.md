@@ -96,7 +96,7 @@ Every table above comes from a file in `eval/results/`. You rebuild a number by 
 | Speed at 300 agents | `live_eval_latency_300.json` | `eval/live_eval.py` | real | 36 questions x 2 repeats, per version |
 | Real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 40 emails, 40 questions x 2 |
 
-The tests themselves are in `tests/`. There are 233 tests in 23 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
+The tests themselves are in `tests/`. There are 239 tests in 22 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
 
 ### The 76 questions
 
