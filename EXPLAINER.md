@@ -50,46 +50,51 @@ Everything runs offline first, with a fake model and a fake Gmail, and the live 
 
 Offline, original against new:
 
-| Measure | Original | New |
-|---|---|---|
-| Execution prompt, 200 log entries (characters) | 79,381 | 11,666 |
-| Peak parallel agents, 20 due reminders | 20 | 5 |
-| Peak parallel agents, 8 started by one message | 8 | 4 |
-| Model calls for 10 / 50 important emails | 20 / 100 | 11 / 51 |
-| Overlapping chat runs, 5 fast messages | 5 | 1 |
-| Emails lost when the classifier fails on 30% of 50 emails | 15 | 0 |
+| Measure | Original | New | Change | What it means |
+|---|---|---|---|---|
+| Execution prompt, 200 log entries (characters) | 79,381 | 11,666 | -85% | Good: an agent with a long history no longer sends all of it on every call, so cost stops growing with age. |
+| Peak parallel agents, 20 due reminders | 20 | 5 | -75% | Good: a burst of reminders can no longer start 20 model-backed agents at once and hit rate limits. |
+| Peak parallel agents, 8 started by one message | 8 | 4 | -50% | Good: one message can start only 4 agents, and the rest wait for a free slot. |
+| Model calls for 10 / 50 important emails | 20 / 100 | 11 / 51 | -45% / -49% | Good: a flood of email costs about half as many model calls. |
+| Overlapping chat runs, 5 fast messages | 5 | 1 | -80% | Good: replies no longer collide and write over each other. |
+| Emails lost when the classifier fails on 30% of 50 emails | 15 | 0 | -100% | Good: a failed classifier call now retries the email instead of marking it seen and losing it. |
 
 Live model, 76 test questions, 2 repeats each:
 
-| Roster | Version | Correct | Duplicates | Input tokens per question |
-|---|---|---|---|---|
-| 300 | Original | 99% | 0% | 21,083 |
-| 300 | New | 98% | 0% | 17,487 (17% fewer) |
-| 600 | Original | 99% | 0% | 33,785 |
-| 600 | New | 97% | 1% | 19,238 (43% fewer) |
+| Roster | Measure | Original | New | Change | What it means |
+|---|---|---|---|---|---|
+| 300 | Correct | 99% | 98% | -1 point | Neutral: the same accuracy within the noise of the test. |
+| 300 | Duplicates | 0% | 0% | none | Good: the bounded view does not make the manager create copies of agents it can reuse. |
+| 300 | Input tokens per question | 21,083 | 17,487 | -17% | Good: each question costs about a sixth less to read. |
+| 300 | Seconds per question (separate run, 36 questions asked twice) | 4.36 | 4.79 | +10% | Slightly bad: the model sometimes searches the roster before it answers, which costs an extra call. This is the honest tradeoff for the smaller prompt. |
+| 600 | Correct | 99% | 97% | -2 points | Slightly bad: the price of showing the model fewer names. It is small and I report it. |
+| 600 | Duplicates | 0% | 1% | +1 point | Slightly bad: 1 question in 100 created a copy of an agent that existed. |
+| 600 | Input tokens per question | 33,785 | 19,238 | -43% | Good: this is the main win, because the original prompt keeps growing with the roster and the new one stays flat. |
 
 Real inbox, 40 emails, messy agent names, 300 agents (40 questions, 2 repeats):
 
-| Version | Correct | Duplicates | Input tokens per question |
-|---|---|---|---|
-| Original | 93% | 6% | 26,841 |
-| New | 95% | 3% | 21,832 |
+| Measure | Original | New | Change | What it means |
+|---|---|---|---|---|
+| Correct | 93% | 95% | +2 points | Good: with realistic messy names the new version routes at least as well as the original. |
+| Duplicates | 6% | 3% | -3 points | Good: half as many unneeded new agents, because the manager searches before it creates. |
+| Input tokens per question | 26,841 | 21,832 | -19% | Good: cheaper on a real roster as well as the made-up one. |
+| Interaction runs for one poll with 6 important emails | 6 | 3 | -50% | Good: the digest batches emails, so the user is not interrupted six times. |
 
-The real classifier marked 6 of the 40 emails as important. One poll causes 6 interaction runs in the original and 3 in the new code. I did the real inbox read once, it was read-only, and I disconnected Gmail afterward.
+The real classifier marked 6 of the 40 emails as important. I did the real inbox read once, it was read-only, and I disconnected Gmail afterward.
 
 ### The same overload scenarios with the real model
 
 The table above uses a scripted stand-in for the model, so it shows what the code does when the model behaves in a fixed way. I also ran the same scenarios with the real model (Haiku 5.5, fake Gmail), one run per version. The script is `python eval/baseline.py --live`, and the results are in `live_baseline_orig.json` and `live_baseline_new.json`. The two runs cost $0.47 and $0.28 and used 3.9 million and 2.0 million input tokens.
 
-| Measure | Original | New |
-|---|---|---|
-| Interaction runs for 10 / 50 important emails | 12 / 43 | 1 / 1 |
-| Model calls for 10 / 50 important emails | 101 / 201 | 12 / 51 |
-| Seconds for 10 / 50 important emails | 107 / 322 | 32 / 149 |
-| Peak parallel agents, 20 due reminders | 20 | 5 |
-| Peak overlapping runs, 5 chat messages at once | 5 | 1 |
-| Interaction prompt at 300 agents (tokens) | 5,943 | 4,687 |
-| Execution prompt, 200 log entries (tokens) | 19,845 | 2,916 |
+| Measure | Original | New | Change | What it means |
+|---|---|---|---|---|
+| Interaction runs for 10 / 50 important emails | 12 / 43 | 1 / 1 | -92% / -98% | Good: one digest message replaces one manager run per email. |
+| Model calls for 10 / 50 important emails | 101 / 201 | 12 / 51 | -88% / -75% | Good: this is where the cost saving comes from. |
+| Seconds for 10 / 50 important emails | 107 / 322 | 32 / 149 | -70% / -54% | Good: the flood finishes faster because there are fewer runs to wait for. |
+| Peak parallel agents, 20 due reminders | 20 | 5 | -75% | Good: the real model confirms the cap holds. |
+| Peak overlapping runs, 5 chat messages at once | 5 | 1 | -80% | Good: chats now run one at a time. |
+| Interaction prompt at 300 agents (tokens) | 5,943 | 4,687 | -21% | Good: a smaller prompt on every message. |
+| Execution prompt, 200 log entries (tokens) | 19,845 | 2,916 | -85% | Good: the log tail cap works with the real model too. |
 
 Two cautions. First, each number is one run, and the real model varies from run to run, so read the direction and not the exact digits. Second, the "8 agents in one message" test did not work with the real model. In both versions the model started none of the eight agents when I asked, so I do not use that row. The scripted version still covers it. In the full live run of the new code, the chat test read 0 because state from the earlier test leaked in. I ran it again alone (`--only burst_chat`) and it read 1, and the result file says so.
 
