@@ -80,7 +80,30 @@ Real inbox, 40 emails, messy agent names, 300 agents (40 questions, 2 repeats):
 | Input tokens per question | 26,841 | 21,832 | -19% | Good: cheaper on a real roster as well as the made-up one. |
 | Interaction runs for one poll with 6 important emails | 6 | 3 | -50% | Good: the digest batches emails, so the user is not interrupted six times. |
 
-The real classifier marked 6 of the 40 emails as important. I did the real inbox read once, it was read-only, and I disconnected Gmail afterward.
+The real classifier marked 6 of the 40 emails as important. I did this first real inbox read read-only, and I disconnected Gmail afterward.
+
+### A bigger real-inbox test: 350 emails, 292 messy agents
+
+The 40-email test above is small, so I repeated it with a much larger inbox. I read 350 emails from my own inbox (the last 90 days) with the same read-only guard. The guard allows only fetch and profile calls. The real classifier marked 33 of the 350 emails as important, and 13 of those as urgent. I built one agent per email, named the way a rushed user names things, such as the sender plus the subject. That gave 292 agents, padded to a roster of 300. There are 146 questions, such as "Did [sender] get back to me yet?". Each one comes from one known email, so the right agent is known without hand labelling. I ran each question twice on each version with the real model (Haiku 5.5). The run cost about $2.0, and the email read and classification cost $0.40 more.
+
+| Measure | Original | New | Change | What it means |
+|---|---|---|---|---|
+| Correct | 70.2% | 95.5% | +25 points | Good: with realistic messy names the original often fails to find the right agent, and the new version finds it almost every time. |
+| Duplicates (a new agent although one existed) | 26.8% | 0.7% | -26 points | Good: this is the main source of the gain. The new version must search before it creates an agent, and the original did not. |
+| Wrong agent reused | 4.1% | 3.4% | -0.7 points | Neutral: about the same on both versions. |
+| Input tokens per question | 34,737 | 29,431 | -15% | Good: each question costs about a seventh less to read. |
+| Model calls per question | 2.38 | 2.66 | +12% | Slightly bad: the search step adds a call in about 7% of runs and a longer loop in some others. |
+| Seconds per question (mean) | 5.3 | 5.5 | +4% | Slightly bad: a small cost for the extra search. |
+| Interaction runs for one poll with 33 important emails | 33 | 4 | -88% | Good: 3 urgent emails go out alone and the rest go in one digest. |
+
+The 12 questions with no matching agent were answered correctly by both versions. The raw results are kept private, because they contain real sender names. The scripts that made them are in the repo: `eval/real_gmail_check.py` (read-only fetch, classify, build) and `eval/live_eval.py --real-file`.
+
+Read this result with care:
+
+- The questions are templates built from sender names, so word search finds them more easily than a real user's wording will.
+- Both repeats use the same 146 questions, so the sample is 146 questions and not 292.
+- It is one inbox from one person, and one run per version.
+- It is larger than the made-up roster result because this roster is almost all messy names. In the 40-email test, most of the 300 agents were tidy made-up ones, and the gap was 93% against 95%.
 
 ### The same overload scenarios with the real model
 
@@ -117,6 +140,7 @@ Every table above comes from a file in `eval/results/`. You rebuild a number by 
 | Accuracy at 300 and 600 agents, final version | `live_eval_300_600_gate.json` | `eval/live_eval.py` | real | 152 per size |
 | Speed at 300 agents | `live_eval_latency_300.json` | `eval/live_eval.py` | real | 36 questions x 2 repeats, per version |
 | Real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 40 emails, 40 questions x 2 |
+| Larger real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 350 emails, 146 questions x 2 |
 
 The tests themselves are in `tests/`. There are 240 tests in 23 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
 
@@ -150,7 +174,7 @@ They measure routing: does the manager pick the right worker without making a du
 - Choosing agents for the bounded view takes about 160 ms per message at 300 agents, 580 ms at 1,000, and 1.9 seconds at 3,000, measured on Windows. Reading file details costs most of that time. Tokenizing and scoring cost a few milliseconds. A cache of log contents saves about 70%, but it adds stale-data risk, so I did not build it. A single directory scan is the better fix if rosters reach 1,000 agents.
 - The reminder check samples only the first 6 occurrences. Retry counts reset on restart. The trigger count check is not atomic.
 - The digest names at most 20 emails.
-- The real inbox is small and quiet, and the questions are templates.
+- The real-inbox tests use one inbox from one person, and the questions are templates built from sender names.
 
 ### Ideas I measured and chose not to build
 

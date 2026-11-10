@@ -77,9 +77,18 @@ def cmd_snapshot(a):
     from server.services.gmail.client import execute_gmail_tool
     from server.services.gmail.processing import EmailTextCleaner, parse_gmail_fetch_response
     query = f"label:INBOX newer_than:{a.days}d"
-    raw = read_only(execute_gmail_tool, "GMAIL_FETCH_EMAILS", a.user_id,
-                    arguments={"query": query, "include_payload": True, "max_results": a.max})
-    emails, _ = parse_gmail_fetch_response(raw, query=query, cleaner=EmailTextCleaner(max_url_length=60))
+    emails, page, seen = [], None, set()
+    while len(emails) < a.max:   # pages of 25: one big request is rejected as too large (HTTP 413)
+        args = {"query": query, "include_payload": True, "max_results": min(25, a.max - len(emails))}
+        if page:
+            args["page_token"] = page
+        raw = read_only(execute_gmail_tool, "GMAIL_FETCH_EMAILS", a.user_id, arguments=args)
+        batch, page = parse_gmail_fetch_response(raw, query=query, cleaner=EmailTextCleaner(max_url_length=60))
+        new = [e for e in batch if e.id not in seen]
+        seen.update(e.id for e in new)
+        emails += new
+        if not page or not new:
+            break
     PRIVATE.mkdir(parents=True, exist_ok=True)
     rows = [{**asdict(e), "timestamp": e.timestamp.isoformat()} for e in emails]
     SNAPSHOT.write_text(json.dumps(rows), encoding="utf-8")
