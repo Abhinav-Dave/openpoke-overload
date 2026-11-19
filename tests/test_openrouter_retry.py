@@ -1,3 +1,4 @@
+import json
 import httpx
 import pytest
 from fastapi import FastAPI
@@ -143,3 +144,110 @@ def test_load_endpoint(net):
     assert {"running", "waiting", "max_parallel", "peak_running"} <= set(body["agents"])
     assert {"running", "waiting", "max_queued"} <= set(body["chat"])
     assert body["usage"]["prompt_tokens"] == 3
+
+
+# ---- embeddings: one POST, no retry, errors never carry the body, key or input ----
+
+RealSyncClient = httpx.Client
+EMB_INPUT = "PRIVATE AGENT TEXT"
+
+
+@pytest.fixture
+def emb_net(monkeypatch):
+    """Fake HTTP for the sync client: emb_net.script is a list of httpx.Response / Exception."""
+    state = type("Net", (), {})()
+    state.script, state.calls, state.sleeps, state.requests = [], 0, [], []
+
+    def handler(request):
+        state.calls += 1
+        state.requests.append(request)
+        item = state.script.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    async def fake_sleep(s):
+        state.sleeps.append(s)
+
+    monkeypatch.setattr(oc.httpx, "Client", lambda **kw: RealSyncClient(transport=httpx.MockTransport(handler)))
+    monkeypatch.setattr(oc, "_sleep", fake_sleep)
+    usage.reset()
+    yield state
+    usage.reset()
+
+
+def emb(inputs=("a", "b"), key=KEY):
+    return oc.request_embeddings(model="em", inputs=list(inputs), timeout=1.0, api_key=key)
+
+
+def test_embeddings_come_back_in_index_order(emb_net):
+    body = {"data": [{"index": 1, "embedding": [0.0, 1.0]}, {"index": 0, "embedding": [1.0, 0.0]}],
+            "usage": {"prompt_tokens": 4, "total_tokens": 4, "cost": 0.5}}
+    emb_net.script = [resp(200, body)]
+    assert emb() == [[1.0, 0.0], [0.0, 1.0]]
+    assert json.loads(emb_net.requests[0].content) == {"model": "em", "input": ["a", "b"]}
+    assert str(emb_net.requests[0].url) == "https://openrouter.ai/api/v1/embeddings"
+    u = usage.get_usage()
+    assert (u["calls"], u["failed_calls"], u["prompt_tokens"], u["cost"]) == (1, 0, 4, 0.5)
+    assert u["models"]["em"]["calls"] == 1
+
+
+def test_embeddings_make_one_attempt_on_503_and_never_sleep(emb_net):
+    emb_net.script = [resp(503), resp(200, {"data": []})]
+    with pytest.raises(oc.OpenRouterError, match="503"):
+        emb()
+    assert emb_net.calls == 1 and emb_net.sleeps == []
+    u = usage.get_usage()
+    assert (u["calls"], u["retries"], u["failed_calls"]) == (0, 0, 1)
+
+
+def test_embeddings_transport_timeout_is_one_attempt(emb_net):
+    emb_net.script = [httpx.ReadTimeout("slow"), resp(200, {"data": []})]
+    with pytest.raises(oc.OpenRouterError, match="ReadTimeout"):
+        emb()
+    assert emb_net.calls == 1 and emb_net.sleeps == []
+    assert usage.get_usage()["failed_calls"] == 1
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"data": [{"index": 0, "embedding": [1.0]}]},  # one vector for two inputs
+        {"data": [{"index": 0, "embedding": []}, {"index": 1, "embedding": [1.0]}]},  # empty vector
+        {"data": [{"index": 0, "embedding": [1.0]}, {"index": 0, "embedding": [2.0]}]},  # index repeated
+        {"data": [{"index": 0, "embedding": [1.0]}, {"index": 2, "embedding": [2.0]}]},  # index out of range
+        {"data": [{"index": 0, "embedding": "AAAA"}, {"index": 1, "embedding": "AAAA"}]},  # base64, not floats
+        {"nothing": 1},
+        [1, 2],
+        b"not json",
+    ],
+)
+def test_embeddings_wrong_shape_or_bad_json_raises(emb_net, body):
+    emb_net.script = [httpx.Response(200, content=body) if isinstance(body, bytes) else resp(200, body)]
+    with pytest.raises(oc.OpenRouterError):
+        emb()
+    u = usage.get_usage()
+    assert (u["calls"], u["failed_calls"]) == (0, 1)
+
+
+def test_embeddings_missing_key_raises_before_any_network_call(emb_net, monkeypatch):
+    from server.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "openrouter_api_key", "")
+    with pytest.raises(oc.OpenRouterError, match="key"):
+        emb(key=None)
+    assert emb_net.calls == 0
+
+
+def test_embeddings_errors_never_carry_the_key_the_input_or_the_body(emb_net):
+    import traceback
+
+    cases = [resp(500, {"error": f"echo {KEY} {EMB_INPUT}"}),
+             httpx.ConnectError(f"{KEY} {EMB_INPUT}"),
+             httpx.Response(200, content=f"{KEY} {EMB_INPUT}".encode())]
+    for case in cases:
+        emb_net.script = [case]
+        with pytest.raises(oc.OpenRouterError) as err:
+            emb(inputs=[EMB_INPUT])
+        shown = "".join(traceback.format_exception(err.type, err.value, err.tb))
+        assert KEY not in shown and EMB_INPUT not in shown and "echo" not in shown

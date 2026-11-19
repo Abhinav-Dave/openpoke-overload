@@ -137,4 +137,40 @@ async def request_chat_completion(
     raise OpenRouterError("OpenRouter request failed: unknown error")  # unreachable; keeps type checkers calm
 
 
-__all__ = ["OpenRouterError", "request_chat_completion", "OpenRouterBaseURL"]
+def request_embeddings(
+    *,
+    model: str,
+    inputs: List[str],
+    timeout: float,
+    api_key: Optional[str] = None,
+    base_url: str = OpenRouterBaseURL,
+) -> List[List[float]]:
+    """Embed `inputs` with one blocking POST and no retry. Vectors come back in input order.
+
+    Errors name only the HTTP status or the exception type, never the body, the key or the input.
+    """
+    headers = _headers(api_key=api_key)  # raises before any network call when the key is missing
+    url = f"{base_url.rstrip('/')}/embeddings"
+    try:
+        with httpx.Client() as client:
+            response = client.post(url, headers=headers, json={"model": model, "input": inputs}, timeout=timeout)
+        if response.status_code >= 400:
+            raise OpenRouterError(f"OpenRouter embeddings failed (HTTP {response.status_code})")
+        data = response.json()
+        rows = sorted(data["data"], key=lambda r: r["index"])
+        if [r["index"] for r in rows] != list(range(len(inputs))):
+            raise OpenRouterError("OpenRouter embeddings returned the wrong number of vectors")
+        vectors = [[float(x) for x in r["embedding"]] for r in rows]
+        if not all(vectors):
+            raise OpenRouterError("OpenRouter embeddings returned an empty vector")
+    except OpenRouterError:
+        usage.record_failure()
+        raise
+    except Exception as exc:  # transport errors, bad JSON, missing or mistyped fields
+        usage.record_failure()
+        raise OpenRouterError(f"OpenRouter embeddings failed ({type(exc).__name__})") from None
+    usage.record_success(model, data.get("usage"))
+    return vectors
+
+
+__all__ = ["OpenRouterError", "request_chat_completion", "request_embeddings", "OpenRouterBaseURL"]

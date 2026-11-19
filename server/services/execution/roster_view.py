@@ -1,6 +1,9 @@
 """Pick which execution agents the interaction agent should see for a message.
 
 Stdlib only: BM25-style word scoring over name + first request + recent requests.
+find_agents on a roster of more than FIND_EMBED_ABOVE agents also ranks by embedding similarity
+(see embeddings.py) and merges the two rankings by reciprocal rank fusion. If the embedder is off or
+fails, find_agents returns the plain BM25 result. select_agents (the bounded view) uses BM25 only.
 """
 
 import math
@@ -10,6 +13,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
+from . import embeddings
 from .log_store import get_execution_agent_logs
 
 K = int(os.getenv("OPENPOKE_ROSTER_VIEW_K", "8"))
@@ -20,6 +24,9 @@ MIN_COVERAGE = float(os.getenv("OPENPOKE_ROSTER_MIN_COVERAGE", "0.0"))
 BOUND_ABOVE = int(os.getenv("OPENPOKE_ROSTER_BOUND_ABOVE", "200"))  # at most this many agents: list every name (original)
 TAIL_NAMES = int(os.getenv("OPENPOKE_ROSTER_TAIL_NAMES", "200"))  # names in the compact tail of the bounded view
 FIND_LIMIT = 5
+FIND_EMBED_ABOVE = int(os.getenv("OPENPOKE_FIND_EMBED_ABOVE", "1000"))  # find_agents adds embeddings above this size
+_RRF_K = 60  # the usual reciprocal rank fusion constant
+_FUSE_DEPTH = 50  # each ranking is cut to this many before fusion
 
 DESC_CHARS = 100
 RECENT_REQUESTS = 3
@@ -140,12 +147,27 @@ def tail_names(agent_names: list[str], shown: Iterable[str], cap: Optional[int] 
     return rest[:cap], max(0, len(rest) - cap)
 
 
+def _rrf(*rankings: list[int], k: int = _RRF_K) -> list[int]:
+    """Reciprocal rank fusion: sum of 1 / (k + rank) over the rankings. Ties keep first-seen order."""
+    score: dict[int, float] = {}
+    for ranking in rankings:
+        for rank, i in enumerate(ranking, start=1):
+            score[i] = score.get(i, 0.0) + 1.0 / (k + rank)
+    return sorted(score, key=lambda i: -score[i])  # dicts keep insertion order and sorted() is stable
+
+
 def find_agents(keywords: str, agent_names: list[str], limit: int = FIND_LIMIT) -> list[AgentView]:
-    """Second-chance lookup over the whole roster: best-effort BM25, no minimum score."""
+    """Second-chance lookup over the whole roster: best-effort BM25, no minimum score.
+    Above FIND_EMBED_ABOVE agents, BM25 is fused with embedding similarity when the embedder answers."""
     if not agent_names:
         return []
     info = [_read_agent(n) for n in agent_names]
     docs = [tokenize(n) * NAME_BOOST + tokenize(text) for n, (_, text, _) in zip(agent_names, info)]
     scores = _scores(keywords, docs)
     order = [i for i in sorted(range(len(agent_names)), key=lambda i: -scores[i]) if scores[i] > 0]
+    if len(agent_names) > FIND_EMBED_ABOVE:
+        texts = [f"{n}: {text}" for n, (_, text, _) in zip(agent_names, info)]
+        semantic = embeddings.similar(keywords, agent_names, texts)
+        if semantic is not None:
+            order = _rrf(order[:_FUSE_DEPTH], semantic[:_FUSE_DEPTH])  # BM25 first, so ties keep its order
     return [AgentView(agent_names[i], info[i][0]) for i in order[:limit]]

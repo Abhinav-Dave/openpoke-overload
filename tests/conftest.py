@@ -1,6 +1,8 @@
 """Shared fixtures. OPENPOKE_DATA_DIR must be set before any `server` import."""
 
+import hashlib
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -34,7 +36,8 @@ def reset_state(monkeypatch):
     from server.agents.interaction_agent import tools as interaction_tools
     from server.config import get_settings
     from server.services.conversation.summarization import scheduler as summ_scheduler
-    from server.services.execution import get_agent_roster
+    from server.openrouter_client import OpenRouterError
+    from server.services.execution import embeddings, get_agent_roster
     from server.services.gmail import client as gmail_client
     from server.services.gmail import importance_watcher
     from server.services import timezone_store, trigger_scheduler
@@ -61,6 +64,15 @@ def reset_state(monkeypatch):
 
     # Settings are read at import time; never read .env, never call the network.
     monkeypatch.setattr(get_settings(), "openrouter_api_key", "test-key")
+
+    # Embedding search: fresh cache, no cooldown, and never the network unless a test installs fake_embedder.
+    embeddings._cache = None
+    embeddings._down_until = 0.0
+
+    def no_network(**kwargs):
+        raise OpenRouterError("network disabled in tests")
+
+    monkeypatch.setattr(embeddings, "request_embeddings", no_network)
     yield
 
 
@@ -110,4 +122,52 @@ def fake_gmail(monkeypatch):
             monkeypatch.setattr(mod, "execute_gmail_tool", fake.execute)
         if hasattr(mod, "get_active_gmail_user_id"):
             monkeypatch.setattr(mod, "get_active_gmail_user_id", lambda *a, **k: fake.user_id)
+    return fake
+
+
+CONCEPTS = {
+    "therapy": "therapy counsellor counselor counseling therapist",
+    "bread": "sourdough starter bread culture loaf",
+    "invoice": "invoice payment owe bill",
+}
+DIMS = 64
+AXIS = {c: int(hashlib.sha1(c.encode()).hexdigest(), 16) % DIMS for c in CONCEPTS}
+assert len(set(AXIS.values())) == len(AXIS)  # concepts must not share an axis
+
+
+class FakeEmbedder:
+    """Stand-in for request_embeddings. One axis per concept (see CONCEPTS); text with no concept
+    word gets the zero vector. Set `fail` to an exception to make the next calls raise it."""
+
+    def __init__(self):
+        self.calls = []
+        self.fail = None
+
+    @property
+    def count(self):
+        return len(self.calls)
+
+    @staticmethod
+    def vector(text):
+        words = set(re.findall(r"[a-z]+", text.lower()))
+        vec = [0.0] * DIMS
+        for concept, group in CONCEPTS.items():
+            if words & set(group.split()):
+                vec[AXIS[concept]] = 1.0
+        return vec
+
+    def __call__(self, *, model, inputs, timeout, **kwargs):
+        self.calls.append({"model": model, "inputs": list(inputs), "timeout": timeout})
+        if self.fail is not None:
+            raise self.fail
+        return [self.vector(t) for t in inputs]
+
+
+@pytest.fixture
+def fake_embedder(monkeypatch):
+    from server.services.execution import embeddings
+
+    fake = FakeEmbedder()
+    monkeypatch.setattr(embeddings, "request_embeddings", fake)
+    monkeypatch.setattr(embeddings, "ENABLED", True)
     return fake
