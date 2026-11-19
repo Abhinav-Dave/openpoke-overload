@@ -176,6 +176,38 @@ The two runs cost $0.42 and $0.41 by token count. The account-spend reading from
 
 My reading: with the user's own words as keywords, the change helps `find_agents` a lot, and it does not hurt the questions whose words match. But this live test shows no gain for the user, and it adds about one second to each search. I kept `OPENPOKE_EMBED=1` as the default, because that was the rule I set before the runs, and the rule uses the offline test. The live sample is small: at most 36 runs with a search per setting. `OPENPOKE_EMBED=0` gives exactly the old behaviour. If you want the conservative choice, turn it off until a larger live test shows a gain.
 
+### Word search against meaning search: how each works, and the tradeoffs
+
+How the word search works today. It lives in `server/services/execution/roster_view.py` and uses only the standard library. For each agent, it builds one text. The text holds the agent name three times, so a name hit counts more than a stray word. It also holds the first request (cut to 100 characters) and the last 3 requests (300 characters each). It splits the user message into words and drops filler words such as "the", "send" and "find". It then scores every agent with BM25, a classic formula that rewards rare words and penalizes long texts. Above 200 agents, the prompt shows the 8 top scorers, the 3 most recently used agents, and a names-only tail. If the best score is below 2.0, the code says "no agent fits", and the find-before-create rule makes the model search before it creates anything.
+
+How the meaning search works. Above 1,000 agents, `find_agents` also sends the keywords and the agent texts to an embedding model. The model turns each text into a list of 1,536 numbers (a vector), and texts with a similar meaning get close vectors. The code ranks agents by cosine similarity (how close two vectors point) and drops scores below 0.4. It then merges that list with the word-search list by reciprocal rank fusion, which uses only the rank positions. Vectors are cached on disk, and a changed agent log makes the code embed that agent again.
+
+| | Word search (BM25) | Meaning search (embeddings) |
+|---|---|---|
+| Finds a reworded request ("chat with my counsellor" for a therapy agent) | Weak: 6 of 31 reworded test questions in the top 5 | Strong: 25 of 31 in the top 5 |
+| Finds the right agent among look-alikes (Acme invoice against Globex invoice) | 32 of 32 first | 32 of 32 first, kept by the merge |
+| Says "nothing fits" | Gives a clear signal, but only 6 of 21 no-match questions return nothing | The same 6 of 21, because a nearest neighbor always exists |
+| Time per search at 1,500 agents | 544 ms | 1,598 ms |
+| Cost | Zero | About $0.001 for the whole offline eval |
+| Network and privacy | None, all local | The agent request text goes to the embedding provider |
+| Works offline and in tests | Yes | Only with a fake embedder in tests |
+| Failure mode | Misses a paraphrase | A timeout blocks the server for up to 5 seconds, then falls back to word search for 60 seconds |
+| Disk | None | 12.4 MB of vectors at 1,500 agents |
+| Easy to explain | Yes: you can see which words matched | No: a similarity score has no visible reason |
+| Live result with the real model | 96.3% correct at 1,500 agents | 94.1%, no gain and inside the noise |
+
+Pros of word search, as the default. It is free, fast, private, deterministic and easy to debug. It never hurts a question whose words match, and it kept duplicates at 0% in the live tests. The model also repairs its weak spot: when the model searches, it picks its own synonyms, so the paraphrase gap is mostly closed before the code sees the query.
+
+Cons of word search. It cannot match two texts that share no word. The offline test shows this clearly, with 19% of reworded questions found in the top 5. A user who words a request in a new way, and a model that does not search, can still miss the right agent.
+
+Pros of meaning search. It closes that gap offline, from 19% to 81% in the top 5. It does not push down the right agent for direct questions. It also fails safely, because any error returns the exact word-search result.
+
+Cons of meaning search. It adds a network call, about one second per search, and a 12 MB cache. It sends the user's request text to a third party. It cannot say "no match" any better than word search. It blocks the event loop while it waits. It starts cold, because the first searches embed only 128 new agents each. In the live test it gave no gain. The model rarely calls `find_agents`. When the model does call it, the model already tries synonyms.
+
+Why I used both, and why only in `find_agents`. Word search stays the default path because it is cheap enough to run on every message. Meaning search runs only inside `find_agents`, which is a rare call and has no strict time limit. I did not put it in the bounded view for three reasons. First, a network call would sit in front of every message. Second, the "nothing fits" rule depends on a BM25 score that merged ranks do not have. Third, the find-before-create rule already forces a search before a new agent exists, so the search fix covers the duplicate risk.
+
+My recommendation. For a roster under 1,000 agents, word search is the right tool and meaning search never runs. Above that size, the offline result is strong and the live result is flat. The evidence supports keeping the feature built and tested. It does not prove that users gain from it. Set `OPENPOKE_EMBED=0` for the conservative choice until a larger live test with real user wording shows a gain.
+
 ## 4b. Where each number comes from
 
 Every table above comes from a file in `eval/results/`. You rebuild a number by running the script in the second column. The "runs" column counts each time a question is asked, so a question asked twice counts twice.
