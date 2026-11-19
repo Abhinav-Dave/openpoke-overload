@@ -286,6 +286,29 @@ def install_stubs(state):
     return undo_all
 
 
+def embed_watch():
+    """New tree only: warm the embedding cache when find_agents will use it, then count its answers.
+    Returns the counters (None for a tree without embedding search). A fallback is a None while it is on."""
+    try:
+        from server.services.execution import embeddings, get_agent_roster, roster_view
+    except ImportError:
+        return None
+    counts = {"embed_warm_calls": 0, "embed_calls": 0, "embed_fallbacks": 0}
+    names = get_agent_roster().get_agents()
+    if embeddings.ENABLED and len(names) > roster_view.FIND_EMBED_ABOVE:
+        from find_eval import warm
+        counts["embed_warm_calls"] = warm(names)[0]
+    real = embeddings.similar
+
+    def watched(*args):
+        out = real(*args)
+        counts["embed_calls"] += 1
+        counts["embed_fallbacks"] += out is None and embeddings.ENABLED
+        return out
+    embeddings.similar = watched
+    return counts
+
+
 def _write_json(path, obj):
     tmp = Path(str(path) + ".tmp")
     tmp.write_text(json.dumps(obj), encoding="utf-8")
@@ -340,6 +363,7 @@ def worker_main(a):
 
     state = RunState()
     install_stubs(state)
+    embed = embed_watch()
     rows, spent, stopped = [], 0.0, False
     for i, q in enumerate(queries):
         if spent >= a.budget_left:
@@ -373,9 +397,9 @@ def worker_main(a):
                      "seconds": round(seconds, 3), "model_seconds": round(state.model_seconds, 3),
                      "slowest_call_seconds": round(max(state.call_seconds, default=0.0), 3)})
         say(f"[{a.tree} n={a.size} r={a.repeat}] {i + 1}/{len(queries)} {q['category']} -> {c['outcome']}")
-        _write_json(a.rows_out, {"rows": rows, "spent_usd": spent, "stopped": False,
+        _write_json(a.rows_out, {"rows": rows, "spent_usd": spent, "stopped": False, "embed": embed,
                                  "usage_missing": state.usage_missing, "gmail_calls": state.gmail_calls})
-    _write_json(a.rows_out, {"rows": rows, "spent_usd": spent, "stopped": stopped,
+    _write_json(a.rows_out, {"rows": rows, "spent_usd": spent, "stopped": stopped, "embed": embed,
                              "usage_missing": state.usage_missing, "gmail_calls": state.gmail_calls})
     return 0
 
@@ -427,7 +451,7 @@ def run_all(a, sizes, per_size, agents):
                        "price_in": a.price_in, "price_out": a.price_out, "orig_commit": ORIG_COMMIT,
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S")},
               "rows": [], "summary": {}, "stopped_early": False, "spent_estimate_usd": 0.0,
-              "account_spend_delta_usd": None, "gmail_calls": 0, "usage_missing": 0}
+              "account_spend_delta_usd": None, "gmail_calls": 0, "usage_missing": 0, "embed": {}}
     tmp = Path(tempfile.mkdtemp(prefix="openpoke_live_trees_"))
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -473,6 +497,8 @@ def run_all(a, sizes, per_size, agents):
                         result["spent_estimate_usd"] = round(result["spent_estimate_usd"] + d["spent_usd"], 6)
                         result["gmail_calls"] += d["gmail_calls"]
                         result["usage_missing"] += d["usage_missing"]
+                        for k, v in (d.get("embed") or {}).items():
+                            result["embed"][k] = result["embed"].get(k, 0) + v
                         done = done or d["stopped"]
                     save()
                     if code != 0:
@@ -508,6 +534,8 @@ def print_summary(result):
                     f"{m['latency_mean']:>8.2f}{m['latency_p50']:>7.2f}{m['latency_p95']:>7.2f}{m['model_seconds_mean']:>8.2f}")
     say(f"\nEstimated spend: ${result['spent_estimate_usd']:.4f} (usage tokens x given prices); "
         f"gmail calls: {result['gmail_calls']}; responses without usage: {result['usage_missing']}")
+    if result.get("embed"):
+        say(f"embedding search in find_agents: {result['embed']}")
     d = result["account_spend_delta_usd"]
     say("Real account spend delta (OpenRouter /key): " + (f"${d:.4f}" if d is not None else "unavailable"))
     if result["stopped_early"]:
@@ -528,6 +556,8 @@ def parse(argv):
     p.add_argument("--new", default=".", help="path of the new-logic tree (contains server/)")
     p.add_argument("--real-file", help="private JSON {agents, queries} from real_gmail_check.py build; replaces the "
                    "labelled queries and adds those agents to every roster. Use --out outside eval/results.")
+    p.add_argument("--extra-queries", help="JSON file of more labelled queries in the same format (for example "
+                   "eval/datasets/routing_paraphrase_queries.json), added after the default set; --split still applies")
     p.add_argument("--out", default=str(ROOT / "eval" / "results" / "live_eval.json"))
     w = p.add_argument_group("internal worker options")
     w.add_argument("--worker", action="store_true")
@@ -550,6 +580,8 @@ def main(argv=None):
         return 2
     sizes = [int(s) for s in a.sizes.split(",") if s]
     agents, queries = load_data()
+    if a.extra_queries:  # appended, so the qids of the default set do not change
+        queries = queries + json.loads(Path(a.extra_queries).read_text(encoding="utf-8"))["queries"]
     if a.real_file:
         real = json.loads(Path(a.real_file).read_text(encoding="utf-8"))
         per_size = {s: [dict(q, qid=i) for i, q in enumerate(real["queries"])] for s in sizes}

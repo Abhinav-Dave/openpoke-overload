@@ -289,3 +289,36 @@ def test_latency_metrics():
     assert m["latency_mean"] == 2.5 and m["latency_p50"] == 2.0 and m["latency_p95"] == 4.0
     assert m["model_seconds_mean"] == 1.25
     assert le.metrics([])["latency_mean"] is None
+
+
+# ---- embedding search in the new tree ----------------------------------------
+def test_extra_queries_are_appended_and_the_split_still_applies(monkeypatch, capsys):
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: pytest.fail("subprocess used in dry run"))
+    extra = ROOT / "eval" / "datasets" / "routing_paraphrase_queries.json"
+    assert le.main(["--sizes", "150"]) == 0
+    base = capsys.readouterr().out
+    assert le.main(["--sizes", "150", "--extra-queries", str(extra)]) == 0
+    more = capsys.readouterr().out
+    count = lambda text: int(text.split("queries per size: 150: ")[1].split()[0])
+    new_test = sum(q["split"] == "test" for q in json.loads(extra.read_text(encoding="utf-8"))["queries"])
+    assert count(more) == count(base) + new_test == 76 + 18
+
+
+def test_embed_watch_warms_the_cache_and_counts_fallbacks(fake_embedder, monkeypatch):
+    from server.openrouter_client import OpenRouterError
+    from server.services.execution import embeddings, get_agent_roster, roster_view
+
+    monkeypatch.setattr(embeddings, "similar", embeddings.similar)  # embed_watch replaces it; restore afterwards
+    monkeypatch.setattr(roster_view, "FIND_EMBED_ABOVE", 1)
+    for name in ("bread-helper", "invoice-helper", "misc-helper"):
+        get_agent_roster().add_agent(name)
+    names = get_agent_roster().get_agents()
+    counts = le.embed_watch()
+    assert counts["embed_warm_calls"] == 2 and fake_embedder.count == 2  # agents embedded, then only the query
+    assert [a.name for a in roster_view.find_agents("sourdough loaf", names)][0] == "bread-helper"
+    fake_embedder.fail = OpenRouterError("x")
+    roster_view.find_agents("sourdough loaf", names)
+    assert (counts["embed_calls"], counts["embed_fallbacks"]) == (2, 1)
+    monkeypatch.setattr(embeddings, "ENABLED", False)
+    roster_view.find_agents("sourdough loaf", names)
+    assert (counts["embed_calls"], counts["embed_fallbacks"]) == (3, 1)  # off is not a fallback

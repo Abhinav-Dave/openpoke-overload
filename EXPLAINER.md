@@ -30,6 +30,7 @@ Context diet (smaller prompts):
 - An execution agent now sees only the newest 20 log entries (12,000 characters at most) plus a header line.
 - Above 200 agents, the interaction prompt shows the 8 best matches for the new message, the 3 most recently used agents, and a names-only tail. Below 200 agents the prompt is identical to the original.
 - A `find_agents` tool searches the full roster. The code refuses to create a new agent in a large roster until `find_agents` ran in that turn. This rule exists because a live test showed that a prompt hint alone did not stop the model from making duplicates.
+- Above 1,000 agents, `find_agents` also ranks agents by meaning with an embedding model. It merges that list with the word-search list by reciprocal rank fusion: each agent gets 1 / (60 + its place) from each list, and the sums set the order. If the embedding call fails, `find_agents` returns exactly the old word-search result. `OPENPOKE_EMBED=0` does the same. The bounded view in the prompt still uses word search only.
 
 Email digest:
 - One interaction run per poll. Up to 3 urgent emails go out alone and the rest go in one digest.
@@ -39,10 +40,11 @@ Email digest:
 
 Everything runs offline first, with a fake model and a fake Gmail, and the live model only checks the result at the end.
 
-- `pytest`: 232 tests. I wrote the tests before the code.
+- `pytest`: 320 tests. I wrote the tests before the code.
 - `eval/baseline.py` measures the original and the new code on the same scenarios.
 - `eval/regression_eval.py` runs 7 regression checks and a table of known gaps. The new code passes 7 of 7.
 - `eval/routing_eval.py` uses 150 made-up agents and 133 labelled questions, split into a tuning set and a test set. It checks whether the right agent is still visible.
+- `eval/find_eval.py` calls the real `find_agents` with word search alone and with embeddings, on 30 new reworded questions plus the older ones. It calls the embedding model only, never a chat model.
 - `eval/live_eval.py` runs the real interaction agent with the real model (Haiku 5.5) on the original code and the new code. It has a dollar cap and runs as a dry run unless you add `--run`.
 - `eval/real_gmail_check.py` reads a real inbox with a guard that blocks every call except fetch and profile. Tests prove that send, draft, reply, forward, delete and label calls fail before any network call.
 
@@ -125,6 +127,55 @@ Two cautions. First, each number is one run, and the real model varies from run 
 
 My first version of the roster fix was worse than the original. At 150 agents it scored 65% on reworded questions and made duplicates 4% of the time. I raised the threshold to 200 agents, added the names tail, and then added the find-before-create rule in code. The final numbers above come from that corrected version. The offline evaluator alone did not catch this. Only the real model did.
 
+### Embedding search in find_agents
+
+Word search (BM25) ranks agents by the words they share with the keywords. It misses a request in other words, such as "chat with my counsellor" for the agent that books therapy sessions. Above 1,000 agents, `find_agents` now also ranks by meaning and merges the two lists. I measured this offline on the test split: 31 reworded questions (13 older and 18 new), 32 direct and look-alike questions, and 21 questions with no matching agent. Each question goes to `find_agents` as written. The script is `eval/find_eval.py`, and the results are in `find_eval.json`.
+
+| Roster | Measure | BM25 | Hybrid | Change | What it means |
+|---|---|---|---|---|---|
+| 1,500 | Reworded questions with the right agent in the top 5 (31) | 19% | 81% | +61 points | Good: this is the gain the change is for. Word search finds 6 of 31, and the blend finds 25. |
+| 1,500 | Reworded questions with the right agent first (31) | 19% | 42% | +23 points | Good, but partial: the right agent is often in the five but not first. The model sees all five. |
+| 1,500 | Older reworded questions, top 5 (13) | 15% | 92% | +77 points | Good: the gain holds on questions written before this change. |
+| 1,500 | New reworded questions, top 5 (18) | 22% | 72% | +50 points | Good: the gain also holds on the 18 new test questions. |
+| 1,500 | Direct and look-alike questions with the right agent first (32) | 100% | 100% | none | Good: when the words match, the blend does not push the right agent down. |
+| 1,500 | No-match questions that return no agent (21) | 29% | 29% | none | Neutral: the same 6 of 21 come back empty. Word search already returns some agent for the other 15, and the model must judge them. |
+| 1,500 | Milliseconds per `find_agents` call | 544 | 1,598 | +194% | Bad: each search now waits about one second for the embedding call. |
+| 150, blend forced on | Reworded questions with the right agent in the top 5 (31) | 39% | 94% | +55 points | Good: the gain does not come only from the clones in the 1,500-agent roster. |
+| 150, blend forced on | Direct and look-alike questions with the right agent first (32) | 100% | 100% | none | Good: the same as at 1,500 agents. |
+
+How I chose the settings. I wrote the rules in the docstring of `eval/find_eval.py` before the first real run.
+- I tuned on the dev split at 1,500 agents. Two values of MIN_SIM tied: 0.25 and 0.40 both put the right agent in the top 5 for 82% of reworded questions. At 0.25, the empty rate for no-match questions fell from 29% to 18%. That is more than the 10-point limit, so the rule chose 0.40.
+- Direct hit@1 stayed at 100% at every value. Because of that, I did not need the fallback rule that keeps the word-search top hit first.
+- I ran the test split once. Reworded hit@5 gained 19 of 31 (the rule needs at least 3). Direct hit@1 lost 0 of 32 (the rule allows 1). Empty no-match answers fell by 0 of 21 (the rule allows 2). So `OPENPOKE_EMBED` stays on by default, with `OPENPOKE_EMBED_MIN_SIM=0.4`.
+- The whole offline eval made 304 embedding calls with 56,818 tokens, for $0.0011. No hybrid row fell back to word search.
+
+Read this result with care:
+- A coding agent wrote all the questions, including the 30 new ones. They do not come from real users.
+- I tuned MIN_SIM on the dev split. The sample is small: 31 reworded test questions.
+- At 1,500 agents, most agents are numbered clones that copy the text of an original. A clone of the right agent counts as a hit, and the top five often holds several copies of one agent. This makes hit@5 at 1,500 agents a coarse measure. The 150-agent rows have no clones.
+- Offline, each question goes to `find_agents` as written. In a live run, the model picks the keywords.
+
+The live check does not show the offline gain. I ran the new code at 1,500 agents with the real model (Haiku 5.5), once with `OPENPOKE_EMBED=0` and once with `OPENPOKE_EMBED=1`. It used the 76 test questions plus the 18 new test questions, 2 repeats each, so 188 runs per setting. I left out the 12 new dev questions, because I tuned MIN_SIM on them. The cache was warm before the first question, and no search fell back to word search.
+
+| Roster | Measure | BM25 | Hybrid | Change | What it means |
+|---|---|---|---|---|---|
+| 1,500 | Correct, all questions (188 runs) | 96.3% | 94.1% | -2.2 points | Slightly bad, but inside the noise: 7 misses against 11. |
+| 1,500 | Correct, reworded questions (62 runs) | 91.9% | 87.1% | -4.8 points | Slightly bad: no live gain on the questions the change is for. |
+| 1,500 | Correct, direct and look-alike questions (64 runs) | 100% | 98.4% | -1.6 points | Neutral: the one miss came in a run with no search, where both settings run the same code. |
+| 1,500 | Duplicates (146 runs with an expected agent) | 0% | 0.7% | +0.7 points | Slightly bad: 1 run made a new yoga agent after a search. |
+| 1,500 | Runs where the model called `find_agents` | 19.1% | 16.5% | -2.6 points | Neutral: the model searched in fewer than 1 run in 5. |
+| 1,500 | Correct in runs with a search | 100% (36 runs) | 93.5% (31 runs) | -6.5 points | Slightly bad: 2 misses against 0. One of them is the same wrong agent that the word-search setting also chose without a search. |
+| 1,500 | Input tokens per question | 19,962 | 19,589 | -2% | Neutral: the same prompt in both settings. |
+| 1,500 | Seconds per question | 6.21 | 6.54 | +5% | Slightly bad: a search now also waits for the embedding call. |
+
+Why the offline gain does not show up live:
+- The model calls `find_agents` in fewer than 1 run in 5. In the other runs it picks from the bounded view and the names tail, which embeddings do not change. 16 of the 18 misses came from those runs, and there both settings run the same code, so those misses are model noise.
+- When the model searches, it picks its own keywords and often tries synonyms. Word search then finds the agent more often than it does with the user's own words. With embeddings off, all 36 runs with a search were correct.
+
+The two runs cost $0.42 and $0.41 by token count. The account-spend reading from OpenRouter was the same for both runs, so I do not trust it.
+
+My reading: with the user's own words as keywords, the change helps `find_agents` a lot, and it does not hurt the questions whose words match. But this live test shows no gain for the user, and it adds about one second to each search. I kept `OPENPOKE_EMBED=1` as the default, because that was the rule I set before the runs, and the rule uses the offline test. The live sample is small: at most 36 runs with a search per setting. `OPENPOKE_EMBED=0` gives exactly the old behaviour. If you want the conservative choice, turn it off until a larger live test shows a gain.
+
 ## 4b. Where each number comes from
 
 Every table above comes from a file in `eval/results/`. You rebuild a number by running the script in the second column. The "runs" column counts each time a question is asked, so a question asked twice counts twice.
@@ -141,8 +192,12 @@ Every table above comes from a file in `eval/results/`. You rebuild a number by 
 | Speed at 300 agents | `live_eval_latency_300.json` | `eval/live_eval.py` | real | 36 questions x 2 repeats, per version |
 | Real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 40 emails, 40 questions x 2 |
 | Larger real inbox: importance count and messy-name test | not committed, kept private | `eval/real_gmail_check.py` and `eval/live_eval.py --real-file` | real | 350 emails, 146 questions x 2 |
+| `find_agents` with and without embeddings, offline | `find_eval.json` | `eval/find_eval.py` | embedding model only (`openai/text-embedding-3-small`) | 84 test and 61 dev questions per mode, plus 7 dev sweeps |
+| Accuracy at 1,500 agents with embeddings off and on | `live_eval_1500_embed0.json`, `live_eval_1500_embed1.json` | `eval/live_eval.py --extra-queries` | real, Haiku 5.5 | 94 questions x 2 repeats per setting |
 
-The tests themselves are in `tests/`. There are 240 tests in 23 files, and they use a fake model and a fake Gmail. Run them with `python -m pytest -q`.
+One caution about `routing_eval.json`. The committed file comes from the first version of the evaluator. A fresh run of `eval/routing_eval.py` on today's code gives different numbers. For example, visible recall on the test split is 1.0, not 0.855. The new embedding code does not cause this: a fresh run before and after the change gives the same numbers.
+
+The tests themselves are in `tests/`. There are 320 tests in 26 files, and they use a fake model, a fake Gmail and a fake embedder. No test reaches the network. Run them with `python -m pytest -q`.
 
 ### The 76 questions
 
@@ -157,6 +212,14 @@ The file `eval/datasets/routing_queries.json` holds 133 questions about 150 made
 | no match | 12 | "Research electric bikes for commuting" | create a new agent |
 | off-topic | 9 | "tell me a joke" | no agent |
 
+A second file, `eval/datasets/routing_paraphrase_queries.json`, holds 30 more reworded questions for the embedding test. It is a separate file. Because of that, a rerun of the older checks gives the older numbers. The rules for the 30 questions:
+- A coding agent wrote them, the same way as the older questions.
+- No content word of a question is a word of its agent's name.
+- No question uses an agent that one of the 23 older reworded questions uses.
+- The split is by position, the same as before: 12 dev and 18 test.
+
+I froze the file before the first hybrid run and did not edit it after. Its sha256, with LF line endings as git stores it, is `6c718c0578e3a824b151401cc199a2cf80394793a44c731d292d2495fb8c043f`. With the 13 older reworded test questions, the test split has 31 reworded questions.
+
 ### What counts as correct
 
 For a question with an expected agent, the run is correct if the manager's accepted choice is that agent. A clone of that agent also counts, because the roster padding adds look-alikes with a number suffix. For a no-match or off-topic question, the run is correct if the manager creates a new agent or calls none. A duplicate means the manager created a new agent although the expected one existed. A wrong reuse means it picked a different existing agent.
@@ -164,6 +227,8 @@ For a question with an expected agent, the run is correct if the manager's accep
 ### Do these tests measure the right thing?
 
 They measure routing: does the manager pick the right worker without making a duplicate, and what does that cost in tokens, calls and seconds? That is the thing the roster change touches, so the test fits the change. They do not measure whether a worker then does its job well. I stubbed that part out because I did not change it. They also use made-up agents with tidy names, single-turn questions, one model, and a small sample. The real-inbox run partly covers the messy-name gap, but only at 40 questions.
+
+The embedding test has one more gap. The offline check gives `find_agents` the user's own words. In a live run the model picks its own keywords, and it often tries synonyms, so word search does better live than offline. The live run is the fairer measure of what a user gets.
 
 ## 5. Honest limits
 
@@ -176,7 +241,17 @@ They measure routing: does the manager pick the right worker without making a du
 - The digest names at most 20 emails.
 - The real-inbox tests use one inbox from one person, and the questions are templates built from sender names.
 
+Limits of the embedding search in `find_agents`:
+- Agent text leaves the machine. With embeddings on, the `find_agents` keywords and the request text of every agent go to the embedding provider (OpenRouter, which passes them to OpenAI). The prompts already go to OpenRouter, but the bounded view sends only a few agents per message. Embedding search sends every agent over time. `OPENPOKE_EMBED=0` stops this. The server logs one line about it at the first call.
+- A cold cache fills slowly. Each call embeds at most 128 new agents. A roster of 1,500 agents therefore needs 12 searches to give every agent a vector. Until then, the agents without a vector get word search only. In the eval, warming 1,500 agents took 13 calls and 35 seconds.
+- The cache is one JSON file per model. When the text of an agent changes, the code rewrites the whole file. At 1,500 agents the file is 12.4 MB.
+- The call blocks the event loop for up to 5 seconds (`TIMEOUT_S`), like the Gmail calls. After a failure, embedding search stays off for 60 seconds.
+- Each search is slower. Above 1,000 agents, a `find_agents` call took 1,598 ms on average with embeddings and 544 ms without, offline.
+- 13 of the 30 new questions share no word with their agent's name or requests. The other 17 share at least one request word, so word search has some chance on them.
+
 ### Ideas I measured and chose not to build
+
+- Embeddings in the bounded view. With it, every message waits for one embedding call. One short input took 0.75 to 1.6 seconds in my tests. I ran `eval/routing_eval.py` again on today's code. At 1,000 agents, the bounded view already shows the right agent with its description for 80% of test questions. It shows the right name for 87%. The model calls `find_agents` for only some messages, so there the wait happens less often.
 
 - Merging near-duplicate agents. A merge must move logs, rewrite reminder rows, and keep old names working across three stores that share no transaction. A word-overlap rule can only separate real duplicates from agents that are meant to be separate (one invoice agent per client) when it compares names, and the margin is thin. With the find-before-create rule on, the live tests showed 0 duplicates out of 152 at 300 agents and 1 out of 152 at 600. A wrong merge sends a request into the wrong history, which is worse than a duplicate.
 - A cache for agent selection. See the latency limit above.
@@ -215,6 +290,10 @@ python eval/baseline.py --live --max-usd 1.5   # real model, needs OPENROUTER_AP
 python eval/regression_eval.py
 python eval/routing_eval.py
 python eval/live_eval.py            # dry run, prints a cost estimate
+python eval/find_eval.py            # embedding model only, needs OPENROUTER_API_KEY, about 14 minutes and $0.002
+OPENPOKE_EMBED=1 python eval/live_eval.py --trees new --sizes 1500 --extra-queries eval/datasets/routing_paraphrase_queries.json --run --max-usd 1.75 --out eval/results/live_eval_1500_embed1.json
 ```
+
+For the last line, run it again with `OPENPOKE_EMBED=0` and `_embed0.json` to get the word-search side.
 
 Settings for every limit are in `.env.example`.

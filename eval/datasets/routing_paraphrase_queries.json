@@ -1,0 +1,186 @@
+{
+  "synthetic": true,
+  "note": "30 reworded questions written by a coding agent, one per agent, for the find_agents embedding test. No content word of a question equals a word of its agent's name. Agents are ones the 23 older paraphrase items do not use. Split fixed by position before any scoring: i % 5 < 2 is dev. Frozen before the first hybrid run; questions are never edited after results (drop and disclose instead).",
+  "queries": [
+    {
+      "text": "Organise my trip to the big neural network research gathering",
+      "expected": "conference-travel-neurips",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Shift the standing catch-up with the UX folks to another slot",
+      "expected": "meeting-reschedule-design-team",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "File my food delivery order slips with the work expenses each month",
+      "expected": "receipts-doordash",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Keep the monthly purchase records from the App Store in my expense files",
+      "expected": "receipts-apple",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Reserve my weekly stretching and breathing session at the fitness club",
+      "expected": "gym-booking-yoga",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "I need my teeth cleaned soon, set up a checkup",
+      "expected": "appointment-dentist",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Where is the Prime parcel I ordered on Monday?",
+      "expected": "track-package-amazon",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Organise a gift and a dinner out for my mother's special day",
+      "expected": "birthday-planning-mom",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Did the power company charge me more than usual this month?",
+      "expected": "utility-bills-electric",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Which of the bills I sent clients in the last three months are still unpaid?",
+      "expected": "quarterly-invoice-summary",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Write rules for charging clients who pay me after the due date",
+      "expected": "late-fee-policy-draft",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Do the card processor payouts line up with what hit my bank account?",
+      "expected": "payment-reconciliation-stripe",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Get the tax and banking paperwork from new suppliers before we pay them",
+      "expected": "vendor-onboarding-forms",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Send buying requests to the right boss for sign-off",
+      "expected": "purchase-order-approvals",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Which of my cards gets me into the quiet waiting rooms before flights?",
+      "expected": "airport-lounge-passes",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Book the consulate interview I need before travelling to Delhi",
+      "expected": "visa-appointment-india",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "What should I bring for a week on the snowy slopes?",
+      "expected": "packing-list-ski-trip",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "How many loyalty points from flying do I have left before they lapse?",
+      "expected": "airline-miles-tracker",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Keep my mornings free of meetings so I can concentrate",
+      "expected": "focus-time-blocks",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Trade my pager duty week with a colleague",
+      "expected": "oncall-schedule-swaps",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Pick a call time that suits coworkers spread across three continents",
+      "expected": "timezone-meeting-planner",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Get rid of the old repeated events cluttering my schedule",
+      "expected": "calendar-invite-cleanup",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Stop the marketing junk that floods my inbox",
+      "expected": "unsubscribe-promotional-emails",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Which pull requests are waiting for my review on the code site?",
+      "expected": "github-notifications-triage",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Tell me about new research preprints on retrieval",
+      "expected": "arxiv-paper-alerts",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Is my laptop still covered if it breaks?",
+      "expected": "warranty-receipts-electronics",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Record the kilometres I drove for work so I get paid back",
+      "expected": "mileage-log-reimbursement",
+      "category": "paraphrase",
+      "split": "dev"
+    },
+    {
+      "text": "Divide last night's group meal tab and collect everyone's portion",
+      "expected": "restaurant-receipts-team-dinner",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Claim my doctor visit costs from the health savings account",
+      "expected": "medical-receipts-hsa",
+      "category": "paraphrase",
+      "split": "test"
+    },
+    {
+      "text": "Send back the blender I ordered online and print the shipping slip",
+      "expected": "amazon-return-labels",
+      "category": "paraphrase",
+      "split": "test"
+    }
+  ]
+}

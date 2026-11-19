@@ -1,0 +1,570 @@
+{
+  "synthetic_data": true,
+  "embed_model": "openai/text-embedding-3-small",
+  "paraphrase_file_sha256": "6c718c0578e3a824b151401cc199a2cf80394793a44c731d292d2495fb8c043f",
+  "n_questions": {
+    "dev": 61,
+    "test": 84
+  },
+  "rules": ", written before the first real run:\n  1. Tune MIN_SIM on the dev split at 1,500 agents over MIN_SIMS. A value qualifies when direct+disambiguation\n     hit@1 is at least BM25's and the no-match empty rate is at least BM25's minus 10 points. Take the qualifying\n     value with the highest paraphrase hit@5 (old and new together); ties go to the higher MIN_SIM. If no value\n     qualifies, the OPENPOKE_EMBED default becomes 0.\n  2. If direct+disambiguation hit@1 falls below BM25's at any swept value, repeat the dev sweep once with a pin:\n     the BM25 top hit stays first when its BM25 score is at least roster_view.MIN_SCORE. Use the pin only if it\n     lets a value with a higher paraphrase hit@5 qualify under rule 1. Dev only.\n  3. Run the test split once, with the chosen MIN_SIM.\n  4. Keep OPENPOKE_EMBED=1 as the default only if, at 1,500 agents on the test split, paraphrase hit@5 gains at\n     least 3 of 31, direct+disambiguation hit@1 loses at most 1 of 32, and the no-match empty count drops by at\n     most 2 of 21. Otherwise the default is 0: built, measured, off by default.\nThe script refuses to write a result if any hybrid row fell back to BM25 (the embedder failed or did not run).\n",
+  "warm_1500": {
+    "calls": 13,
+    "seconds": 35.41,
+    "inputs_per_call": [
+      129,
+      129,
+      129,
+      129,
+      129,
+      129,
+      129,
+      129,
+      129,
+      129,
+      129,
+      93,
+      1
+    ],
+    "cache_file_bytes": 12432223
+  },
+  "sweep_dev_1500": {
+    "bm25": {
+      "para_hit5": 0.091,
+      "direct_hit1": 1.0,
+      "empty": 0.294
+    },
+    "hybrid": [
+      {
+        "min_sim": 0.2,
+        "para_hit5": 0.727,
+        "direct_hit1": 1.0,
+        "empty": 0.0,
+        "fallbacks": 0
+      },
+      {
+        "min_sim": 0.25,
+        "para_hit5": 0.818,
+        "direct_hit1": 1.0,
+        "empty": 0.176,
+        "fallbacks": 0
+      },
+      {
+        "min_sim": 0.3,
+        "para_hit5": 0.773,
+        "direct_hit1": 1.0,
+        "empty": 0.294,
+        "fallbacks": 0
+      },
+      {
+        "min_sim": 0.35,
+        "para_hit5": 0.773,
+        "direct_hit1": 1.0,
+        "empty": 0.294,
+        "fallbacks": 0
+      },
+      {
+        "min_sim": 0.4,
+        "para_hit5": 0.818,
+        "direct_hit1": 1.0,
+        "empty": 0.294,
+        "fallbacks": 0
+      },
+      {
+        "min_sim": 0.45,
+        "para_hit5": 0.727,
+        "direct_hit1": 1.0,
+        "empty": 0.294,
+        "fallbacks": 0
+      },
+      {
+        "min_sim": 0.5,
+        "para_hit5": 0.545,
+        "direct_hit1": 1.0,
+        "empty": 0.294,
+        "fallbacks": 0
+      }
+    ],
+    "chosen_min_sim": 0.4
+  },
+  "agents_1500": {
+    "bm25": {
+      "paraphrase_old": {
+        "dev": {
+          "n": 10,
+          "hit1": 1,
+          "hit5": 1,
+          "empty": 0,
+          "hit1_rate": 0.1,
+          "hit5_rate": 0.1,
+          "empty_rate": 0.0,
+          "ms_mean": 608.0
+        },
+        "test": {
+          "n": 13,
+          "hit1": 2,
+          "hit5": 2,
+          "empty": 2,
+          "hit1_rate": 0.154,
+          "hit5_rate": 0.154,
+          "empty_rate": 0.154,
+          "ms_mean": 506.9
+        }
+      },
+      "paraphrase_new": {
+        "dev": {
+          "n": 12,
+          "hit1": 1,
+          "hit5": 1,
+          "empty": 0,
+          "hit1_rate": 0.083,
+          "hit5_rate": 0.083,
+          "empty_rate": 0.0,
+          "ms_mean": 516.0
+        },
+        "test": {
+          "n": 18,
+          "hit1": 4,
+          "hit5": 4,
+          "empty": 0,
+          "hit1_rate": 0.222,
+          "hit5_rate": 0.222,
+          "empty_rate": 0.0,
+          "ms_mean": 499.2
+        }
+      },
+      "paraphrase_all": {
+        "dev": {
+          "n": 22,
+          "hit1": 2,
+          "hit5": 2,
+          "empty": 0,
+          "hit1_rate": 0.091,
+          "hit5_rate": 0.091,
+          "empty_rate": 0.0,
+          "ms_mean": 557.8
+        },
+        "test": {
+          "n": 31,
+          "hit1": 6,
+          "hit5": 6,
+          "empty": 2,
+          "hit1_rate": 0.194,
+          "hit5_rate": 0.194,
+          "empty_rate": 0.065,
+          "ms_mean": 502.5
+        }
+      },
+      "direct+disambiguation": {
+        "dev": {
+          "n": 22,
+          "hit1": 22,
+          "hit5": 22,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 561.4
+        },
+        "test": {
+          "n": 32,
+          "hit1": 32,
+          "hit5": 32,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 496.1
+        }
+      },
+      "no_match+offtopic": {
+        "dev": {
+          "n": 17,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 5,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.294,
+          "ms_mean": 676.8
+        },
+        "test": {
+          "n": 21,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 6,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.286,
+          "ms_mean": 677.7
+        }
+      },
+      "fallbacks": 0
+    },
+    "hybrid_test": {
+      "paraphrase_old": {
+        "dev": {
+          "n": 0,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 0,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": null,
+          "ms_mean": null
+        },
+        "test": {
+          "n": 13,
+          "hit1": 5,
+          "hit5": 12,
+          "empty": 0,
+          "hit1_rate": 0.385,
+          "hit5_rate": 0.923,
+          "empty_rate": 0.0,
+          "ms_mean": 1700.1
+        }
+      },
+      "paraphrase_new": {
+        "dev": {
+          "n": 0,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 0,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": null,
+          "ms_mean": null
+        },
+        "test": {
+          "n": 18,
+          "hit1": 8,
+          "hit5": 13,
+          "empty": 0,
+          "hit1_rate": 0.444,
+          "hit5_rate": 0.722,
+          "empty_rate": 0.0,
+          "ms_mean": 1539.8
+        }
+      },
+      "paraphrase_all": {
+        "dev": {
+          "n": 0,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 0,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": null,
+          "ms_mean": null
+        },
+        "test": {
+          "n": 31,
+          "hit1": 13,
+          "hit5": 25,
+          "empty": 0,
+          "hit1_rate": 0.419,
+          "hit5_rate": 0.806,
+          "empty_rate": 0.0,
+          "ms_mean": 1607.0
+        }
+      },
+      "direct+disambiguation": {
+        "dev": {
+          "n": 0,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 0,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": null,
+          "ms_mean": null
+        },
+        "test": {
+          "n": 32,
+          "hit1": 32,
+          "hit5": 32,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 1604.9
+        }
+      },
+      "no_match+offtopic": {
+        "dev": {
+          "n": 0,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 0,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": null,
+          "ms_mean": null
+        },
+        "test": {
+          "n": 21,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 6,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.286,
+          "ms_mean": 1574.4
+        }
+      },
+      "fallbacks": 0
+    }
+  },
+  "agents_150": {
+    "bm25": {
+      "paraphrase_old": {
+        "dev": {
+          "n": 10,
+          "hit1": 1,
+          "hit5": 3,
+          "empty": 0,
+          "hit1_rate": 0.1,
+          "hit5_rate": 0.3,
+          "empty_rate": 0.0,
+          "ms_mean": 46.4
+        },
+        "test": {
+          "n": 13,
+          "hit1": 2,
+          "hit5": 3,
+          "empty": 2,
+          "hit1_rate": 0.154,
+          "hit5_rate": 0.231,
+          "empty_rate": 0.154,
+          "ms_mean": 46.1
+        }
+      },
+      "paraphrase_new": {
+        "dev": {
+          "n": 12,
+          "hit1": 1,
+          "hit5": 4,
+          "empty": 0,
+          "hit1_rate": 0.083,
+          "hit5_rate": 0.333,
+          "empty_rate": 0.0,
+          "ms_mean": 44.8
+        },
+        "test": {
+          "n": 18,
+          "hit1": 3,
+          "hit5": 9,
+          "empty": 0,
+          "hit1_rate": 0.167,
+          "hit5_rate": 0.5,
+          "empty_rate": 0.0,
+          "ms_mean": 45.7
+        }
+      },
+      "paraphrase_all": {
+        "dev": {
+          "n": 22,
+          "hit1": 2,
+          "hit5": 7,
+          "empty": 0,
+          "hit1_rate": 0.091,
+          "hit5_rate": 0.318,
+          "empty_rate": 0.0,
+          "ms_mean": 45.5
+        },
+        "test": {
+          "n": 31,
+          "hit1": 5,
+          "hit5": 12,
+          "empty": 2,
+          "hit1_rate": 0.161,
+          "hit5_rate": 0.387,
+          "empty_rate": 0.065,
+          "ms_mean": 45.9
+        }
+      },
+      "direct+disambiguation": {
+        "dev": {
+          "n": 22,
+          "hit1": 22,
+          "hit5": 22,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 43.2
+        },
+        "test": {
+          "n": 32,
+          "hit1": 32,
+          "hit5": 32,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 41.2
+        }
+      },
+      "no_match+offtopic": {
+        "dev": {
+          "n": 17,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 5,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.294,
+          "ms_mean": 43.0
+        },
+        "test": {
+          "n": 21,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 6,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.286,
+          "ms_mean": 42.1
+        }
+      },
+      "fallbacks": 0
+    },
+    "hybrid": {
+      "paraphrase_old": {
+        "dev": {
+          "n": 10,
+          "hit1": 3,
+          "hit5": 7,
+          "empty": 0,
+          "hit1_rate": 0.3,
+          "hit5_rate": 0.7,
+          "empty_rate": 0.0,
+          "ms_mean": 986.5
+        },
+        "test": {
+          "n": 13,
+          "hit1": 6,
+          "hit5": 12,
+          "empty": 0,
+          "hit1_rate": 0.462,
+          "hit5_rate": 0.923,
+          "empty_rate": 0.0,
+          "ms_mean": 1009.0
+        }
+      },
+      "paraphrase_new": {
+        "dev": {
+          "n": 12,
+          "hit1": 6,
+          "hit5": 12,
+          "empty": 0,
+          "hit1_rate": 0.5,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 994.6
+        },
+        "test": {
+          "n": 18,
+          "hit1": 7,
+          "hit5": 17,
+          "empty": 0,
+          "hit1_rate": 0.389,
+          "hit5_rate": 0.944,
+          "empty_rate": 0.0,
+          "ms_mean": 1072.0
+        }
+      },
+      "paraphrase_all": {
+        "dev": {
+          "n": 22,
+          "hit1": 9,
+          "hit5": 19,
+          "empty": 0,
+          "hit1_rate": 0.409,
+          "hit5_rate": 0.864,
+          "empty_rate": 0.0,
+          "ms_mean": 990.9
+        },
+        "test": {
+          "n": 31,
+          "hit1": 13,
+          "hit5": 29,
+          "empty": 0,
+          "hit1_rate": 0.419,
+          "hit5_rate": 0.935,
+          "empty_rate": 0.0,
+          "ms_mean": 1045.6
+        }
+      },
+      "direct+disambiguation": {
+        "dev": {
+          "n": 22,
+          "hit1": 22,
+          "hit5": 22,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 1071.6
+        },
+        "test": {
+          "n": 32,
+          "hit1": 32,
+          "hit5": 32,
+          "empty": 0,
+          "hit1_rate": 1.0,
+          "hit5_rate": 1.0,
+          "empty_rate": 0.0,
+          "ms_mean": 1098.0
+        }
+      },
+      "no_match+offtopic": {
+        "dev": {
+          "n": 17,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 5,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.294,
+          "ms_mean": 969.9
+        },
+        "test": {
+          "n": 21,
+          "hit1": 0,
+          "hit5": 0,
+          "empty": 6,
+          "hit1_rate": null,
+          "hit5_rate": null,
+          "empty_rate": 0.286,
+          "ms_mean": 1036.9
+        }
+      },
+      "fallbacks": 0
+    }
+  },
+  "decision": {
+    "bm25_test_counts": {
+      "para_hit5": 6,
+      "direct_hit1": 32,
+      "empty": 6
+    },
+    "hybrid_test_counts": {
+      "para_hit5": 25,
+      "direct_hit1": 32,
+      "empty": 6
+    },
+    "min_sim": 0.4,
+    "openpoke_embed_default": 1
+  },
+  "fallbacks": 0,
+  "embedding_usage": {
+    "failed_calls": 0,
+    "calls": 304,
+    "prompt_tokens": 56818,
+    "completion_tokens": 0,
+    "cached_tokens": 0,
+    "cache_write_tokens": 0,
+    "cost": 0.001136359999999996
+  },
+  "seconds": 809
+}
